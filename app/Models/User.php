@@ -50,7 +50,7 @@ class User extends Authenticatable
     /**
      * Check if user can access Filament admin panel
      */
-    public function canAccessPanel(\Filament\Panel $panel): bool
+    public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('super_admin');
     }
