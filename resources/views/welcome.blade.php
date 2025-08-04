@@ -114,6 +114,30 @@
             </div>
         </div>
 
+        <!-- AI Trial Section -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-md p-8 mb-12 text-center text-white">
+            <div class="max-w-2xl mx-auto">
+                <i class="fas fa-robot text-4xl mb-4"></i>
+                <h3 class="text-2xl font-bold mb-4">{{ __('Try AI Processing') }}</h3>
+                <p class="text-blue-100 mb-6">
+                    {{ __('Experience the power of artificial intelligence in text processing. Test our AI capabilities with your own text.') }}
+                </p>
+                @auth
+                    <a href="{{ route('ai-trial.index') }}" 
+                       class="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition duration-200">
+                        <i class="fas fa-magic mr-2"></i>
+                        {{ __('Start AI Trial') }}
+                    </a>
+                @else
+                    <a href="{{ route('login') }}" 
+                       class="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition duration-200">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        {{ __('Login to Try AI') }}
+                    </a>
+                @endauth
+            </div>
+        </div>
+
         <!-- Books Section -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div class="flex justify-between items-center mb-6">

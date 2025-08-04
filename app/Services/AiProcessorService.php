@@ -42,6 +42,39 @@ class AiProcessorService
     }
     
     /**
+     * Process text for AI trial (without saving to database)
+     */
+    public function processTextForTrial($originalText, $processingType, $targetLanguage)
+    {
+        try {
+            // Convert single processing type to array for buildPrompt
+            $processingOptions = [$processingType];
+            
+            // Build prompt
+            $prompt = $this->buildPrompt($processingOptions, $originalText, $targetLanguage);
+            
+            // Call Gemini API
+            $response = $this->callGeminiAPI($prompt);
+            
+            if ($response['success']) {
+                return $response['text'];
+            } else {
+                throw new \Exception('فشل في معالجة النص: ' . ($response['error'] ?? 'خطأ غير معروف'));
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('AI Trial Processing Error', [
+                'error' => $e->getMessage(),
+                'processing_type' => $processingType,
+                'target_language' => $targetLanguage,
+                'text_length' => strlen($originalText)
+            ]);
+            
+            throw $e;
+        }
+    }
+
+    /**
      * Process text with AI based on the specified options
      */
         public function processText($originalText, $processingOptions, $targetLanguage, $bookIdentify, $originalFile)

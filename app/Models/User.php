@@ -23,7 +23,14 @@ class User extends Authenticatable implements FilamentUser
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
+        'email_verified',
+        'email_verification_token',
+        'profile_image',
+        'bio',
+        'reset_token',
+        'reset_token_expires',
         'is_active',
     ];
 
@@ -35,6 +42,9 @@ class User extends Authenticatable implements FilamentUser
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verification_token',
+        'reset_token',
+        'reset_token_expires',
     ];
 
     /**
@@ -47,7 +57,9 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'email_verified' => 'boolean',
             'is_active' => 'boolean',
+            'reset_token_expires' => 'datetime',
         ];
     }
 

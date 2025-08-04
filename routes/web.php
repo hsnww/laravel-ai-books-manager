@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\FileManagerController;
 use App\Http\Controllers\PdfViewerController;
 use App\Http\Controllers\AiProcessorController;
+use App\Http\Controllers\AiTrialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
@@ -39,6 +40,12 @@ Route::prefix('ai-processor')->middleware('auth')->group(function () {
     Route::post('/process-files', [AiProcessorController::class, 'processFiles'])->name('ai-processor.process');
     Route::get('/{bookId}/history', [AiProcessorController::class, 'getProcessingHistory'])->name('ai-processor.history');
     Route::get('/{bookId}/processed-texts', [AiProcessorController::class, 'getProcessedTexts'])->name('ai-processor.processed-texts');
+});
+
+// AI Trial Routes - Protected by authentication
+Route::prefix('ai-trial')->middleware('auth')->group(function () {
+    Route::get('/', [AiTrialController::class, 'index'])->name('ai-trial.index');
+    Route::post('/process', [AiTrialController::class, 'process'])->name('ai-trial.process');
 });
 
 // Breeze Routes
