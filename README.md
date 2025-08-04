@@ -187,4 +187,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 For support and inquiries, please contact via:
 - Create an Issue on GitHub
-- Send email to: support@example.com
+- Send email to: hsnwww@gmail.com
