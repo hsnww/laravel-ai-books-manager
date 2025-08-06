@@ -26,34 +26,53 @@ class FileManagerResource extends Resource
     protected static ?string $model = FileManager::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
-    protected static ?string $navigationGroup = 'إدارة الملفات';
-    protected static ?string $navigationLabel = 'إدارة الملفات';
 
-    protected static ?string $modelLabel = 'مجلد';
+    public static function getNavigationGroup(): string
+    {
+        return __('File Management');
+    }
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $pluralModelLabel = 'المجلدات';
+    protected static ?string $modelLabel = null;
+
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('File Management');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Folder');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Folders');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('اسم المجلد')
+                    ->label(__('Folder Name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('path')
-                    ->label('المسار')
+                    ->label(__('Path'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('size')
-                    ->label('الحجم')
+                    ->label(__('Size'))
                     ->numeric()
                     ->suffix('bytes'),
                 Forms\Components\TextInput::make('type')
-                    ->label('النوع')
+                    ->label(__('Type'))
                     ->maxLength(100),
                 Forms\Components\TextInput::make('url')
-                    ->label('الرابط')
+                    ->label(__('URL'))
                     ->required()
                     ->helperText('أدخل رابط صحيح للملف')
                     ->maxLength(255)
@@ -63,10 +82,10 @@ class FileManagerResource extends Resource
                         'max:255'
                     ]),
                 Forms\Components\TextInput::make('folder')
-                    ->label('المجلد')
+                    ->label(__('Folder'))
                     ->maxLength(255),
                 Forms\Components\DateTimePicker::make('modified_at')
-                    ->label('آخر تعديل'),
+                    ->label(__('Last Modified')),
             ]);
     }
 
@@ -75,7 +94,7 @@ class FileManagerResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('folder_name')
-                    ->label('اسم المجلد')
+                    ->label(__('Folder Name'))
                     ->getStateUsing(function (FileManager $record) {
                         return self::extractBookId($record->path) ?: $record->name;
                     })
@@ -83,22 +102,22 @@ class FileManagerResource extends Resource
                     ->sortable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('folder_type')
-                    ->label('نوع المجلد')
+                    ->label(__('Folder Type'))
                     ->getStateUsing(function (FileManager $record) {
                         return match ($record->folder) {
-                            'extracted_texts' => 'النصوص المستخرجة',
-                            'processed_texts' => 'النصوص المعالجة',
+                            'extracted_texts' => __('Extracted Texts'),
+                            'processed_texts' => __('Processed Texts'),
                             default => $record->folder,
                         };
                     })
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'النصوص المستخرجة' => 'success',
-                        'النصوص المعالجة' => 'warning',
+                        __('Extracted Texts') => 'success',
+                        __('Processed Texts') => 'warning',
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('file_count')
-                    ->label('عدد الملفات')
+                    ->label(__('File Count'))
                     ->getStateUsing(function (FileManager $record) {
                         $bookId = self::extractBookId($record->path);
                         if ($bookId) {
@@ -112,7 +131,7 @@ class FileManagerResource extends Resource
                     ->badge()
                     ->color('info'),
                 Tables\Columns\TextColumn::make('total_size')
-                    ->label('الحجم الإجمالي')
+                    ->label(__('Total Size'))
                     ->getStateUsing(function (FileManager $record) {
                         $bookId = self::extractBookId($record->path);
                         if ($bookId) {
@@ -126,7 +145,7 @@ class FileManagerResource extends Resource
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('last_modified')
-                    ->label('آخر تعديل')
+                    ->label(__('Last Modified'))
                     ->getStateUsing(function (FileManager $record) {
                         $bookId = self::extractBookId($record->path);
                         if ($bookId) {
@@ -145,10 +164,10 @@ class FileManagerResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('folder')
-                    ->label('نوع المجلد')
+                    ->label(__('Folder Type'))
                     ->options([
-                        'extracted_texts' => 'النصوص المستخرجة',
-                        'processed_texts' => 'النصوص المعالجة',
+                        'extracted_texts' => __('Extracted Texts'),
+                        'processed_texts' => __('Processed Texts'),
                     ])
                     ->default('extracted_texts'),
             ])
@@ -179,7 +198,7 @@ class FileManagerResource extends Resource
             ->actions([
                 // إجراء عرض ملفات المجلد
                 Action::make('view_folder')
-                    ->label('عرض الملفات')
+                    ->label(__('View Files'))
                     ->icon('heroicon-o-folder-open')
                     ->color('primary')
                     ->url(function (FileManager $record) {
@@ -192,7 +211,7 @@ class FileManagerResource extends Resource
                 
                 // إجراء إدارة الملفات (فقط للنصوص المستخرجة)
                 Action::make('manage_files')
-                    ->label('إدارة الملفات')
+                    ->label(__('Manage Files'))
                     ->icon('heroicon-o-folder')
                     ->color('success')
                     ->visible(fn (FileManager $record) => $record->folder === 'extracted_texts')
@@ -207,7 +226,7 @@ class FileManagerResource extends Resource
                 
                 // إجراء معالجة بالذكاء الاصطناعي (فقط للنصوص المستخرجة)
                 Action::make('ai_processor')
-                    ->label('معالجة بالذكاء الاصطناعي')
+                    ->label(__('AI Processing'))
                     ->icon('heroicon-o-cpu-chip')
                     ->color('warning')
                     ->visible(fn (FileManager $record) => $record->folder === 'extracted_texts')
@@ -223,7 +242,7 @@ class FileManagerResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('حذف من قاعدة البيانات'),
+                        ->label(__('Delete from database')),
                 ]),
             ]);
     }

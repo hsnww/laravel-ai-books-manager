@@ -17,14 +17,14 @@ class ListFileManagers extends ListRecords
     {
         return [
             \Filament\Actions\Action::make('sync_files')
-                ->label('مزامنة الملفات')
+                ->label(__('Sync Files'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('تأكيد مزامنة الملفات')
-                ->modalDescription('سيتم مسح جميع مجلدات الملفات وتحديث قاعدة البيانات. هل تريد المتابعة؟')
-                ->modalSubmitActionLabel('نعم، مزامنة الملفات')
-                ->modalCancelActionLabel('إلغاء')
+                ->modalHeading(__('Confirm File Sync'))
+                ->modalDescription(__('All file folders will be cleared and the database will be updated. Do you want to continue?'))
+                ->modalSubmitActionLabel(__('Yes, sync files'))
+                ->modalCancelActionLabel(__('Cancel'))
                 ->action(function () {
                     try {
                         $fileManagerService = new \App\Services\FileManagerService();
@@ -32,21 +32,21 @@ class ListFileManagers extends ListRecords
                         
                         if ($result['success']) {
                             \Filament\Notifications\Notification::make()
-                                ->title('تمت المزامنة بنجاح')
+                                ->title(__('Sync completed successfully'))
                                 ->body($result['message'])
                                 ->success()
                                 ->send();
                         } else {
                             \Filament\Notifications\Notification::make()
-                                ->title('خطأ في المزامنة')
+                                ->title(__('Sync error'))
                                 ->body($result['message'])
                                 ->danger()
                                 ->send();
                         }
                     } catch (\Exception $e) {
                         \Filament\Notifications\Notification::make()
-                            ->title('خطأ في المزامنة')
-                            ->body('حدث خطأ أثناء مزامنة الملفات: ' . $e->getMessage())
+                            ->title(__('Sync error'))
+                            ->body(__('Error occurred during file sync') . ': ' . $e->getMessage())
                             ->danger()
                             ->send();
                     }
@@ -59,54 +59,54 @@ class ListFileManagers extends ListRecords
         return $table
             ->columns([
                 \Filament\Tables\Columns\TextColumn::make('book_folder')
-                    ->label('معرف الكتاب')
+                    ->label(__('Book ID'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 \Filament\Tables\Columns\TextColumn::make('book_title')
-                    ->label('عنوان الكتاب')
+                    ->label(__('Book Title'))
                     ->getStateUsing(function ($record) {
                         // البحث عن عنوان الكتاب عبر جدول books
                         $bookInfo = \App\Models\BookInfo::join('books', 'books_info.book_id', '=', 'books.id')
                             ->where('books.book_identify', $record->book_folder)
                             ->select('books_info.title')
                             ->first();
-                        return $bookInfo ? $bookInfo->title : 'غير محدد';
+                        return $bookInfo ? $bookInfo->title : __('Not specified');
                     })
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->color('primary'),
                 \Filament\Tables\Columns\TextColumn::make('book_author')
-                    ->label('المؤلف')
+                    ->label(__('Author'))
                     ->getStateUsing(function ($record) {
                         // البحث عن المؤلف عبر جدول books
                         $bookInfo = \App\Models\BookInfo::join('books', 'books_info.book_id', '=', 'books.id')
                             ->where('books.book_identify', $record->book_folder)
                             ->select('books_info.author')
                             ->first();
-                        return $bookInfo ? $bookInfo->author : 'غير محدد';
+                        return $bookInfo ? $bookInfo->author : __('Not specified');
                     })
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 \Filament\Tables\Columns\TextColumn::make('folder_type')
-                    ->label('نوع المجلد')
+                    ->label(__('Folder Type'))
                     ->getStateUsing(function ($record) {
                         return match ($record->folder) {
-                            'extracted_texts' => 'النصوص المستخرجة',
-                            'processed_texts' => 'النصوص المعالجة',
+                            'extracted_texts' => __('Extracted Texts'),
+                            'processed_texts' => __('Processed Texts'),
                             default => $record->folder,
                         };
                     })
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'النصوص المستخرجة' => 'success',
-                        'النصوص المعالجة' => 'warning',
+                        __('Extracted Texts') => 'success',
+                        __('Processed Texts') => 'warning',
                         default => 'gray',
                     }),
                 \Filament\Tables\Columns\TextColumn::make('file_count')
-                    ->label('عدد الملفات')
+                    ->label(__('File Count'))
                     ->getStateUsing(function ($record) {
                         // حساب عدد الملفات في نفس مجلد الكتاب
                         return FileManager::where('folder', $record->folder)
@@ -117,7 +117,7 @@ class ListFileManagers extends ListRecords
                     ->badge()
                     ->color('info'),
                 \Filament\Tables\Columns\TextColumn::make('total_size')
-                    ->label('الحجم الإجمالي')
+                    ->label(__('Total Size'))
                     ->getStateUsing(function ($record) {
                         $totalSize = FileManager::where('folder', $record->folder)
                             ->where('book_folder', $record->book_folder)
@@ -127,7 +127,7 @@ class ListFileManagers extends ListRecords
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 \Filament\Tables\Columns\TextColumn::make('last_modified')
-                    ->label('آخر تعديل')
+                    ->label(__('Last Modified'))
                     ->getStateUsing(function ($record) {
                         $latestFile = FileManager::where('folder', $record->folder)
                             ->where('book_folder', $record->book_folder)
@@ -142,16 +142,16 @@ class ListFileManagers extends ListRecords
             ])
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('folder')
-                    ->label('نوع المجلد')
+                    ->label(__('Folder Type'))
                     ->options([
-                        'extracted_texts' => 'النصوص المستخرجة',
-                        'processed_texts' => 'النصوص المعالجة',
+                        'extracted_texts' => __('Extracted Texts'),
+                        'processed_texts' => __('Processed Texts'),
                     ])
                     ->default('extracted_texts'),
             ])
             ->actions([
                 \Filament\Tables\Actions\Action::make('view_folder')
-                    ->label('عرض الملفات')
+                    ->label(__('View Files'))
                     ->icon('heroicon-o-folder-open')
                     ->color('primary')
                     ->url(function ($record) {
@@ -162,7 +162,7 @@ class ListFileManagers extends ListRecords
                     }),
                 
                 \Filament\Tables\Actions\Action::make('manage_files')
-                    ->label('إدارة الملفات')
+                    ->label(__('Manage Files'))
                     ->icon('heroicon-o-folder')
                     ->color('success')
                     ->visible(fn ($record) => $record->folder === 'extracted_texts')
@@ -175,7 +175,7 @@ class ListFileManagers extends ListRecords
                     ->openUrlInNewTab(),
                 
                 \Filament\Tables\Actions\Action::make('ai_processor')
-                    ->label('معالجة بالذكاء الاصطناعي')
+                    ->label(__('AI Processing'))
                     ->icon('heroicon-o-cpu-chip')
                     ->color('warning')
                     ->visible(fn ($record) => $record->folder === 'extracted_texts')
@@ -190,7 +190,7 @@ class ListFileManagers extends ListRecords
             ->bulkActions([
                 \Filament\Tables\Actions\BulkActionGroup::make([
                     \Filament\Tables\Actions\DeleteBulkAction::make()
-                        ->label('حذف من قاعدة البيانات'),
+                        ->label(__('Delete from database')),
                 ]),
             ]);
     }

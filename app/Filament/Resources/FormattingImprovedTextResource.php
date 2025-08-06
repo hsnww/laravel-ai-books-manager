@@ -17,12 +17,32 @@ class FormattingImprovedTextResource extends Resource
     protected static ?string $model = FormattingImprovedText::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'إدارة النصوص المعالجة';
-    protected static ?string $navigationLabel = 'النصوص الملخصة نقاط';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'نص ملخص نقاط';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'النصوص الملخصة نقاط';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('Processed Texts Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Bullet Points Texts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Bullet Points Text');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Bullet Points Texts');
+    }
 
     public static function form(Form $form): Form
     {

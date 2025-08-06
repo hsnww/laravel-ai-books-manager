@@ -99,19 +99,19 @@ class BookController extends Controller
         return [
             'summarized' => SummarizedText::where('book_id', $bookId)
                 ->where('target_language', $language)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'asc')
                 ->first(),
             'formatting' => FormattingImprovedText::where('book_id', $bookId)
                 ->where('target_language', $language)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'asc')
                 ->first(),
             'translated' => TranslatedText::where('book_id', $bookId)
                 ->where('target_language', $language)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'asc')
                 ->first(),
             'enhanced' => EnhancedText::where('book_id', $bookId)
                 ->where('target_language', $language)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'asc')
                 ->first(),
         ];
     }
@@ -171,25 +171,25 @@ class BookController extends Controller
                 case 'summarized':
                     $texts = SummarizedText::where('book_id', $book->id)
                         ->where('target_language', $language)
-                        ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
                 case 'formatting':
                     $texts = FormattingImprovedText::where('book_id', $book->id)
                         ->where('target_language', $language)
-                        ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
                 case 'translated':
                     $texts = TranslatedText::where('book_id', $book->id)
                         ->where('target_language', $language)
-                        ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
                 case 'enhanced':
                     $texts = EnhancedText::where('book_id', $book->id)
                         ->where('target_language', $language)
-                        ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
                 default:

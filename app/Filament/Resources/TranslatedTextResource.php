@@ -17,12 +17,32 @@ class TranslatedTextResource extends Resource
     protected static ?string $model = TranslatedText::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-language';
-    protected static ?string $navigationGroup = 'إدارة النصوص المعالجة';
-    protected static ?string $navigationLabel = 'النصوص المترجمة';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'نص مترجم';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'النصوص المترجمة';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('Processed Texts Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Translated Texts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Translated Text');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Translated Texts');
+    }
 
     public static function form(Form $form): Form
     {

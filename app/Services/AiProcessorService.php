@@ -739,11 +739,11 @@ class AiProcessorService
     public function getAvailableProcessingOptions()
     {
         return [
-            'extract_info' => 'استخراج معلومات الكتاب',
-            'summarize' => 'تلخيص النص',
-            'translate' => 'ترجمة النص',
-            'enhance' => 'تحسين النص',
-            'improve_format' => 'تلخيص النص على هيئة نقاط'
+            'extract_info' => __('Book Information Extraction'),
+            'summarize' => __('Text Summarization'),
+            'translate' => __('Text Translation'),
+            'enhance' => __('Text Enhancement'),
+            'improve_format' => __('Bullet Points Summary')
         ];
     }
     

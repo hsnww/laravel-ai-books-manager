@@ -17,12 +17,32 @@ class EnhancedTextResource extends Resource
     protected static ?string $model = EnhancedText::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'إدارة النصوص المعالجة';
-    protected static ?string $navigationLabel = 'النصوص المحسنة';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'نص محسن';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'النصوص المحسنة';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('Processed Texts Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Enhanced Texts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Enhanced Text');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Enhanced Texts');
+    }
 
     public static function form(Form $form): Form
     {

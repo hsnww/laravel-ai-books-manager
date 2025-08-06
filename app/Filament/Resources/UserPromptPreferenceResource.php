@@ -15,13 +15,33 @@ class UserPromptPreferenceResource extends Resource
     protected static ?string $model = UserPromptPreference::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
-    protected static ?string $navigationGroup = 'إدارة النظام';
+    protected static ?string $navigationGroup = null;
 
-    protected static ?string $navigationLabel = 'تفضيلات التوجيهات';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'تفضيل توجيه';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'تفضيلات التوجيهات';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('System Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Prompt Preferences');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Prompt Preference');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Prompt Preferences');
+    }
 
     public static function form(Form $form): Form
     {

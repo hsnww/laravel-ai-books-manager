@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ session('locale', 'en') }}" dir="{{ session('locale', 'en') == 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معالج الذكاء الاصطناعي - {{ $bookId }}</title>
+    <title>{{ __('AI Processor') }} - {{ $bookId }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -48,15 +48,15 @@
                  <a href="{{ route('filament.admin.pages.dashboard') }}" 
                     class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition duration-200">
                      <i class="fas fa-arrow-right ml-2"></i>
-                     العودة للوحة التحكم
+                     {{ __('Back to Admin Panel') }}
                  </a>
              </div>
              
              <h1 class="text-3xl font-bold text-gray-800 mb-2">
                  <i class="fas fa-brain text-blue-600"></i>
-                 معالج الذكاء الاصطناعي
+                 {{ __('AI Processor') }}
              </h1>
-             <p class="text-gray-600">معالجة النصوص المستخرجة باستخدام Google Gemini AI</p>
+             <p class="text-gray-600">{{ __('Process extracted texts using Google Gemini AI') }}</p>
              
              <!-- Book Information -->
              @if($bookInfo)
@@ -66,10 +66,10 @@
                          <div>
                              <h3 class="text-lg font-semibold text-blue-800">{{ $bookInfo->title }}</h3>
                              @if($bookInfo->author)
-                                 <p class="text-sm text-blue-600">المؤلف: {{ $bookInfo->author }}</p>
+                                 <p class="text-sm text-blue-600">{{ __('Author') }}: {{ $bookInfo->author }}</p>
                              @endif
                              @if($bookInfo->language)
-                                 <p class="text-sm text-blue-600">اللغة: {{ $bookInfo->language }}</p>
+                                 <p class="text-sm text-blue-600">{{ __('Language') }}: {{ $bookInfo->language }}</p>
                              @endif
                          </div>
                      </div>
@@ -88,7 +88,7 @@
          <div class="bg-white rounded-lg shadow-md p-6 mb-6">
              <h2 class="text-xl font-semibold mb-4">
                  <i class="fas fa-file-alt text-green-600"></i>
-                 اختيار الملفات
+                 {{ __('File Selection') }}
              </h2>
              
              <!-- Select All / Deselect All Buttons -->
@@ -96,12 +96,12 @@
                  <button type="button" id="selectAllBtn" 
                          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
                      <i class="fas fa-check-square mr-2"></i>
-                     تحديد الكل
+                     {{ __('Select All') }}
                  </button>
                  <button type="button" id="deselectAllBtn" 
                          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition duration-200">
                      <i class="fas fa-square mr-2"></i>
-                     إلغاء تحديد الكل
+                     {{ __('Deselect All') }}
                  </button>
              </div>
              
@@ -128,7 +128,7 @@
             
             <div class="text-sm text-gray-600">
                 <i class="fas fa-info-circle"></i>
-                تم العثور على {{ count($files) }} ملف نصي
+                {{ __('Found') }} {{ count($files) }} {{ __('text files') }}
             </div>
         </div>
 
@@ -136,25 +136,38 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold mb-4">
                 <i class="fas fa-chart-bar text-green-600"></i>
-                إحصائيات المعالجات السابقة
+                {{ __('Previous Processing Statistics') }}
             </h2>
+            
+            <!-- Debug Information -->
+            @if(config('app.debug'))
+                <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 class="font-semibold text-yellow-800 mb-2">معلومات التصحيح:</h4>
+                    <div class="text-sm text-yellow-700">
+                        <p>عدد الملخصات: {{ isset($processingStats['summarized']) ? $processingStats['summarized']->count() : 'غير محدد' }}</p>
+                        <p>عدد النقاط: {{ isset($processingStats['formatting']) ? $processingStats['formatting']->count() : 'غير محدد' }}</p>
+                        <p>عدد الترجمات: {{ isset($processingStats['translated']) ? $processingStats['translated']->count() : 'غير محدد' }}</p>
+                        <p>عدد التحسينات: {{ isset($processingStats['enhanced']) ? $processingStats['enhanced']->count() : 'غير محدد' }}</p>
+                    </div>
+                </div>
+            @endif
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Summarized Texts -->
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-compress-alt text-2xl"></i>
-                        <span class="text-sm opacity-90">الملخص</span>
+                        <span class="text-sm opacity-90">{{ __('Summary') }}</span>
                     </div>
                     <div class="space-y-1">
-                        @if($processingStats['summarized']->count() > 0)
+                        @if(isset($processingStats['summarized']) && $processingStats['summarized']->count() > 0)
                             @foreach($processingStats['summarized'] as $stat)
                                 <div class="text-sm">
                                     {{ $stat->count }} {{ $stat->target_language }}
                                 </div>
                             @endforeach
                         @else
-                            <div class="text-sm opacity-75">لا توجد معالجات</div>
+                            <div class="text-sm opacity-75">{{ __('No processing found') }}</div>
                         @endif
                     </div>
                 </div>
@@ -163,17 +176,17 @@
                 <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-list-ul text-2xl"></i>
-                        <span class="text-sm opacity-90">النقاط</span>
+                        <span class="text-sm opacity-90">{{ __('Bullet Points') }}</span>
                     </div>
                     <div class="space-y-1">
-                        @if($processingStats['formatting']->count() > 0)
+                        @if(isset($processingStats['formatting']) && $processingStats['formatting']->count() > 0)
                             @foreach($processingStats['formatting'] as $stat)
                                 <div class="text-sm">
                                     {{ $stat->count }} {{ $stat->target_language }}
                                 </div>
                             @endforeach
                         @else
-                            <div class="text-sm opacity-75">لا توجد معالجات</div>
+                            <div class="text-sm opacity-75">{{ __('No processing found') }}</div>
                         @endif
                     </div>
                 </div>
@@ -182,17 +195,17 @@
                 <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-language text-2xl"></i>
-                        <span class="text-sm opacity-90">الترجمة</span>
+                        <span class="text-sm opacity-90">{{ __('Translation') }}</span>
                     </div>
                     <div class="space-y-1">
-                        @if($processingStats['translated']->count() > 0)
+                        @if(isset($processingStats['translated']) && $processingStats['translated']->count() > 0)
                             @foreach($processingStats['translated'] as $stat)
                                 <div class="text-sm">
                                     {{ $stat->count }} {{ $stat->target_language }}
                                 </div>
                             @endforeach
                         @else
-                            <div class="text-sm opacity-75">لا توجد معالجات</div>
+                            <div class="text-sm opacity-75">{{ __('No processing found') }}</div>
                         @endif
                     </div>
                 </div>
@@ -201,17 +214,17 @@
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-magic text-2xl"></i>
-                        <span class="text-sm opacity-90">التحسين</span>
+                        <span class="text-sm opacity-90">{{ __('Enhancement') }}</span>
                     </div>
                     <div class="space-y-1">
-                        @if($processingStats['enhanced']->count() > 0)
+                        @if(isset($processingStats['enhanced']) && $processingStats['enhanced']->count() > 0)
                             @foreach($processingStats['enhanced'] as $stat)
                                 <div class="text-sm">
                                     {{ $stat->count }} {{ $stat->target_language }}
                                 </div>
                             @endforeach
                         @else
-                            <div class="text-sm opacity-75">لا توجد معالجات</div>
+                            <div class="text-sm opacity-75">{{ __('No processing found') }}</div>
                         @endif
                     </div>
                 </div>
@@ -222,7 +235,7 @@
          <div class="bg-white rounded-lg shadow-md p-6 mb-6">
              <h2 class="text-xl font-semibold mb-4">
                  <i class="fas fa-cogs text-purple-600"></i>
-                 خيارات المعالجة
+                 {{ __('Processing Options') }}
              </h2>
              
              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -239,7 +252,7 @@
             
             <div class="text-sm text-gray-600 mt-2">
                 <i class="fas fa-info-circle"></i>
-                اختر نوع معالجة واحد فقط للحصول على أفضل النتائج
+                {{ __('Choose only one processing type for best results') }}
             </div>
         </div>
 
@@ -247,11 +260,11 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold mb-4">
                 <i class="fas fa-language text-orange-600"></i>
-                حدد لغة المخرجات
+                {{ __('Select Output Language') }}
             </h2>
             
             <select name="target_language" id="target_language" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">اختر لغة المخرجات</option>
+                <option value="">{{ __('Select Output Language') }}</option>
                 @foreach($availableLanguages as $key => $label)
                 <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
@@ -262,13 +275,13 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <button id="processBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
                 <i class="fas fa-play mr-2"></i>
-                بدء المعالجة
+                {{ __('Start Processing') }}
             </button>
             
             <div id="loading" class="loading mt-4 text-center">
                 <div class="inline-flex items-center">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-                    <span class="text-gray-600">جاري المعالجة...</span>
+                    <span class="text-gray-600">{{ __('Processing...') }}</span>
                 </div>
             </div>
         </div>
@@ -277,7 +290,7 @@
         <div id="results" class="bg-white rounded-lg shadow-md p-6" style="display: none;">
             <h2 class="text-xl font-semibold mb-4">
                 <i class="fas fa-chart-bar text-green-600"></i>
-                نتائج المعالجة
+                {{ __('Processing Results') }}
             </h2>
             
             <div id="resultsContent"></div>
@@ -466,7 +479,7 @@
             }
             
             if (history.length === 0) {
-                contentDiv.innerHTML = '<div class="text-center text-gray-500">لا توجد معالجات سابقة</div>';
+                                    contentDiv.innerHTML = '<div class="text-center text-gray-500">{{ __("No previous processing") }}</div>';
                 loadMoreContainer.style.display = 'none';
                 return;
             }

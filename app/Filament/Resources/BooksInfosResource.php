@@ -18,12 +18,30 @@ class BooksInfosResource extends Resource
     protected static ?string $model = BookInfo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
-    protected static ?string $navigationGroup = 'إدارة البيانات';
-    protected static ?string $navigationLabel = 'معلومات الكتب';
 
-    protected static ?string $modelLabel = 'معلومات الكتاب';
+    public static function getNavigationGroup(): string
+    {
+        return __('Data Management');
+    }
 
-    protected static ?string $pluralModelLabel = 'معلومات الكتب';
+    public static function getNavigationLabel(): string
+    {
+        return __('Books Information');
+    }
+
+    protected static ?string $modelLabel = null;
+
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getModelLabel(): string
+    {
+        return __('Book Information');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Books Information');
+    }
 
     public static function form(Form $form): Form
     {

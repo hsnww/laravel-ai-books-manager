@@ -20,10 +20,30 @@ class SummarizedTextResource extends Resource
     protected static ?string $model = SummarizedText::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'إدارة النصوص المعالجة';
-    protected static ?string $navigationLabel = 'النصوص الملخصة';
-    protected static ?string $modelLabel = 'نص ملخص';
-    protected static ?string $pluralModelLabel = 'النصوص الملخصة';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
+    protected static ?string $modelLabel = null;
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('Processed Texts Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Summarized Texts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Summarized Text');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Summarized Texts');
+    }
 
     public static function form(Form $form): Form
     {

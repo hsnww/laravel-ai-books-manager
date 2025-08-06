@@ -20,12 +20,32 @@ class UploadManagerResource extends Resource
     protected static ?string $model = FileManager::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cloud-arrow-up';
-    protected static ?string $navigationGroup = 'إدارة الملفات';
-    protected static ?string $navigationLabel = 'رفع الملفات';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'ملف مرفوع';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'الملفات المرفوعة';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('File Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Upload Files');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Uploaded File');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Uploaded Files');
+    }
 
     // إعدادات مخصصة لرفع الملفات
     protected static function getUploadMaxFileSize(): int
@@ -56,10 +76,10 @@ class UploadManagerResource extends Resource
         return $form
             ->schema([
                 Forms\Components\FileUpload::make('file_path')
-                    ->label('اختر ملف PDF')
+                    ->label(__('Choose PDF File'))
                     ->acceptedFileTypes(static::getUploadAcceptedFileTypes())
                     ->required()
-                    ->helperText('يمكنك رفع ملفات PDF بحجم أقصى 50 ميجابايت')
+                    ->helperText(__('You can upload PDF files with a maximum size of 50 megabytes'))
                     ->storeFileNamesIn('original_name')
                     ->disk('public')
                     ->directory('temp')
@@ -77,15 +97,15 @@ class UploadManagerResource extends Resource
             ->modifyQueryUsing(fn ($query) => $query->where('folder', 'uploads'))
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('اسم الملف')
+                    ->label(__('File Name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('size')
-                    ->label('الحجم')
+                    ->label(__('File Size'))
                     ->formatStateUsing(fn ($state) => number_format($state) . ' bytes')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('type')
-                    ->label('النوع')
+                    ->label(__('File Type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'pdf' => 'danger',
@@ -93,16 +113,16 @@ class UploadManagerResource extends Resource
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('folder')
-                    ->label('المجلد')
+                    ->label(__('File Folder'))
                     ->badge(),
                 Tables\Columns\TextColumn::make('modified_at')
-                    ->label('آخر تعديل')
+                    ->label(__('Last Modified'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->label('نوع الملف')
+                    ->label(__('File Type Filter'))
                     ->options([
                         'pdf' => 'PDF',
                     ]),
@@ -113,7 +133,7 @@ class UploadManagerResource extends Resource
                 
                 // إجراء استخراج النصوص
                 Action::make('extract_text')
-                    ->label('استخراج النصوص')
+                    ->label(__('Extract Texts'))
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->visible(fn (FileManager $record) => $record->type === 'pdf')
@@ -125,19 +145,19 @@ class UploadManagerResource extends Resource
                             
                             if ($result['success']) {
                                 Notification::make()
-                                    ->title('تم استخراج النصوص بنجاح')
+                                    ->title(__('Text extraction completed successfully'))
                                     ->success()
                                     ->send();
                             } else {
                                 Notification::make()
-                                    ->title('فشل في استخراج النصوص')
+                                    ->title(__('Failed to extract texts'))
                                     ->body($result['error'])
                                     ->danger()
                                     ->send();
                             }
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('خطأ في استخراج النصوص')
+                                ->title(__('Text extraction error'))
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
@@ -146,7 +166,7 @@ class UploadManagerResource extends Resource
                 
                 // إجراء عرض PDF
                 Action::make('view_pdf')
-                    ->label('عرض PDF')
+                    ->label(__('View PDF'))
                     ->icon('heroicon-o-document')
                     ->color('primary')
                     ->visible(fn (FileManager $record) => $record->type === 'pdf')
@@ -161,7 +181,7 @@ class UploadManagerResource extends Resource
                 
                 // حذف مع حذف الملف الفعلي
                 Tables\Actions\DeleteAction::make('delete_with_file')
-                    ->label('حذف')
+                    ->label(__('Delete'))
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->action(function (FileManager $record) {
@@ -177,13 +197,13 @@ class UploadManagerResource extends Resource
                             $record->delete();
                             
                             Notification::make()
-                                ->title('تم حذف الملف بنجاح')
+                                ->title(__('File deleted successfully'))
                                 ->success()
                                 ->send();
                                 
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('خطأ في حذف الملف')
+                                ->title(__('Error deleting file'))
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
@@ -198,7 +218,7 @@ class UploadManagerResource extends Resource
                     
                     // حذف مع حذف الملف الفعلي
                     Tables\Actions\BulkAction::make('delete_with_file')
-                        ->label('حذف')
+                        ->label(__('Delete'))
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->action(function ($records) {
@@ -219,17 +239,17 @@ class UploadManagerResource extends Resource
                                     $deletedCount++;
                                     
                                 } catch (\Exception $e) {
-                                    $errors[] = "خطأ في حذف الملف {$record->name}: " . $e->getMessage();
+                                    $errors[] = __("Error deleting file") . " {$record->name}: " . $e->getMessage();
                                 }
                             }
                             
-                            $message = "تم حذف {$deletedCount} ملف بنجاح";
+                            $message = __("Files deleted") . " {$deletedCount} " . __("files successfully");
                             if (!empty($errors)) {
                                 $message .= "\n" . implode("\n", $errors);
                             }
                             
                             Notification::make()
-                                ->title('تم حذف الملفات')
+                                ->title(__('Files deleted'))
                                 ->body($message)
                                 ->success()
                                 ->send();

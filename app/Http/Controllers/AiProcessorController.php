@@ -37,6 +37,18 @@ class AiProcessorController extends Controller
         // Get processing statistics
         $processingStats = $this->getProcessingStatistics($bookId);
         
+        // Debug: Log the statistics
+        \Log::info('Processing Statistics for book: ' . $bookId, [
+            'summarized_count' => $processingStats['summarized']->count(),
+            'formatting_count' => $processingStats['formatting']->count(),
+            'translated_count' => $processingStats['translated']->count(),
+            'enhanced_count' => $processingStats['enhanced']->count(),
+            'summarized_data' => $processingStats['summarized']->toArray(),
+            'formatting_data' => $processingStats['formatting']->toArray(),
+            'translated_data' => $processingStats['translated']->toArray(),
+            'enhanced_data' => $processingStats['enhanced']->toArray(),
+        ]);
+        
         // Get available options
         $processingOptions = $this->aiProcessorService->getAvailableProcessingOptions();
         $availableLanguages = $this->aiProcessorService->getAvailableLanguages();
@@ -52,10 +64,13 @@ class AiProcessorController extends Controller
         // Get book ID from book_identify
         $book = \App\Models\Book::where('book_identify', $bookId)->first();
         if (!$book) {
-            return [];
+            return [
+                'summarized' => collect(),
+                'formatting' => collect(),
+                'translated' => collect(),
+                'enhanced' => collect(),
+            ];
         }
-        
-        $stats = [];
         
         // Get statistics for each processing type and language
         $summarizedStats = \App\Models\SummarizedText::where('book_id', $book->id)

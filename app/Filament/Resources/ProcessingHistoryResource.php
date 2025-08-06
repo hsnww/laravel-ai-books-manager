@@ -15,13 +15,33 @@ class ProcessingHistoryResource extends Resource
     protected static ?string $model = ProcessingHistory::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static ?string $navigationGroup = 'إدارة النظام';
+    protected static ?string $navigationGroup = null;
 
-    protected static ?string $navigationLabel = 'تاريخ المعالجات';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'معالجة';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'تاريخ المعالجات';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('System Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Processing History');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Processing');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Processing History');
+    }
 
     public static function form(Form $form): Form
     {

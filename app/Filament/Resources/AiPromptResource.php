@@ -16,12 +16,32 @@ class AiPromptResource extends Resource
     protected static ?string $model = AiPrompt::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
-    protected static ?string $navigationGroup = 'إدارة النظام';
-    protected static ?string $navigationLabel = 'توجيهات الذكاء الاصطناعي';
+    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = 'توجيه';
+    protected static ?string $modelLabel = null;
 
-    protected static ?string $pluralModelLabel = 'التوجيهات';
+    protected static ?string $pluralModelLabel = null;
+
+    public static function getNavigationGroup(): string
+    {
+        return __('System Management');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('AI Prompts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Prompt');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Prompts');
+    }
 
     public static function form(Form $form): Form
     {

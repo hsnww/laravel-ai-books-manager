@@ -59,13 +59,13 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth('full')
             ->defaultAvatarProvider(\Filament\AvatarProviders\UiAvatarsProvider::class)
             // ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandName('نظام إدارة الكتب')
+            ->brandName(__('AI Books Manager System'))
             ->favicon(asset('images/favicon.png'))
             ->navigationGroups([
-                'إدارة الملفات',
-                'إدارة النصوص المعالجة',
-                'إدارة البيانات',
-                'إدارة النظام',
+                __('File Management'),
+                __('Processed Texts Management'),
+                __('Data Management'),
+                __('System Management'),
             ]);
     }
 }

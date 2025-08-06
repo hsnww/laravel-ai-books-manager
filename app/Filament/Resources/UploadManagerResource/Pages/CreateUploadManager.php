@@ -61,7 +61,7 @@ class CreateUploadManager extends CreateRecord
     protected function getCreatedNotification(): ?Notification
     {
         return Notification::make()
-            ->title('تم رفع الملف بنجاح')
+            ->title(__('File uploaded successfully'))
             ->success();
     }
 

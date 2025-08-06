@@ -18,7 +18,7 @@ class ListUploadManagers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('رفع ملف PDF')
+                ->label(__('Upload PDF File'))
                 ->icon('heroicon-o-plus'),
         ];
     }
@@ -32,20 +32,20 @@ class ListUploadManagers extends ListRecords
 
             if ($result['success']) {
                 Notification::make()
-                    ->title('تم استخراج النصوص بنجاح')
-                    ->body("تم حفظ النص في: {$result['text_file_path']}")
+                    ->title(__('Text extraction completed successfully'))
+                    ->body("Text saved to: {$result['text_file_path']}")
                     ->success()
                     ->send();
             } else {
                 Notification::make()
-                    ->title('فشل في استخراج النصوص')
+                    ->title(__('Failed to extract texts'))
                     ->body($result['error'])
                     ->danger()
                     ->send();
             }
         } catch (\Exception $e) {
             Notification::make()
-                ->title('خطأ في استخراج النصوص')
+                ->title(__('Text extraction error'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

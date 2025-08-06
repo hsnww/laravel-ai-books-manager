@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ session('locale', 'en') }}" dir="{{ session('locale', 'en') == 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>إدارة الملفات النصية - {{ $bookId }}</title>
+    <title>{{ __('Text File Management') }} - {{ $bookId }}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -83,8 +83,8 @@
         .text-editor {
             min-height: 400px;
             font-family: 'Courier New', monospace;
-            direction: rtl;
-            text-align: right;
+            direction: {{ session('locale', 'en') == 'ar' ? 'rtl' : 'ltr' }};
+            text-align: {{ session('locale', 'en') == 'ar' ? 'right' : 'left' }};
         }
         
         .drag-handle {
@@ -138,15 +138,15 @@
                 <a href="{{ route('filament.admin.resources.file-managers.index') }}" 
                    class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition duration-200">
                     <i class="fas fa-arrow-right ml-2"></i>
-                    العودة للوحة التحكم
+                    {{ __('Back to Admin Panel') }}
                 </a>
             </div>
             
             <h1 class="text-3xl font-bold text-gray-800 mb-2">
                 <i class="fas fa-folder-open text-blue-600"></i>
-                إدارة الملفات النصية
+                {{ __('Text File Management') }}
             </h1>
-            <p class="text-gray-600">إدارة وتنظيم الملفات النصية المستخرجة من الكتاب</p>
+            <p class="text-gray-600">{{ __('Manage and organize text files extracted from the book') }}</p>
             
             <!-- Book Information -->
             @if($bookInfo)
@@ -156,10 +156,10 @@
                         <div>
                             <h3 class="text-lg font-semibold text-blue-800">{{ $bookInfo->title }}</h3>
                             @if($bookInfo->author)
-                                <p class="text-sm text-blue-600">المؤلف: {{ $bookInfo->author }}</p>
+                                <p class="text-sm text-blue-600">{{ __('Author') }}: {{ $bookInfo->author }}</p>
                             @endif
                             @if($bookInfo->language)
-                                <p class="text-sm text-blue-600">اللغة: {{ $bookInfo->language }}</p>
+                                <p class="text-sm text-blue-600">{{ __('Language') }}: {{ $bookInfo->language }}</p>
                             @endif
                         </div>
                     </div>
@@ -178,14 +178,14 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold mb-4">
                 <i class="fas fa-chart-bar text-green-600"></i>
-                إحصائيات الملفات
+                {{ __('File Statistics') }}
             </h2>
             
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-file-alt text-2xl"></i>
-                        <span class="text-sm opacity-90">إجمالي الملفات</span>
+                        <span class="text-sm opacity-90">{{ __('Total Files') }}</span>
                     </div>
                     <div class="text-2xl font-bold" id="totalFiles">0</div>
                 </div>
@@ -193,7 +193,7 @@
                 <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-font text-2xl"></i>
-                        <span class="text-sm opacity-90">إجمالي الكلمات</span>
+                        <span class="text-sm opacity-90">{{ __('Total Words') }}</span>
                     </div>
                     <div class="text-2xl font-bold" id="totalWords">0</div>
                 </div>
@@ -201,7 +201,7 @@
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-weight text-2xl"></i>
-                        <span class="text-sm opacity-90">إجمالي الحجم</span>
+                        <span class="text-sm opacity-90">{{ __('Total Size') }}</span>
                     </div>
                     <div class="text-2xl font-bold" id="totalSize">0 KB</div>
                 </div>
@@ -209,7 +209,7 @@
                 <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <i class="fas fa-exclamation-triangle text-2xl"></i>
-                        <span class="text-sm opacity-90">الملفات الفارغة</span>
+                        <span class="text-sm opacity-90">{{ __('Empty Files') }}</span>
                     </div>
                     <div class="text-2xl font-bold" id="emptyFiles">0</div>
                 </div>
@@ -220,28 +220,28 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold mb-4">
                 <i class="fas fa-tools text-purple-600"></i>
-                أدوات الإدارة
+                {{ __('Management Tools') }}
             </h2>
             
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center" onclick="showMergeModal()">
                     <i class="fas fa-object-group mr-2"></i>
-                    دمج الملفات
+                    {{ __('Merge Files') }}
                 </button>
                 
                 <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center" onclick="showReorderModal()">
                     <i class="fas fa-sort mr-2"></i>
-                    إعادة الترتيب
+                    {{ __('Reorder') }}
                 </button>
                 
                 <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center" onclick="showDeleteModal()">
                     <i class="fas fa-trash mr-2"></i>
-                    حذف متعدد
+                    {{ __('Multiple Delete') }}
                 </button>
                 
                 <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center" onclick="downloadAll()">
                     <i class="fas fa-download mr-2"></i>
-                    تحميل الكل
+                    {{ __('Download All') }}
                 </button>
             </div>
         </div>
@@ -259,7 +259,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900">
                         <i class="fas fa-edit text-blue-600 mr-2"></i>
-                        تعديل الملف: <span id="editFileName" class="font-semibold"></span>
+                        {{ __('Edit File') }}: <span id="editFileName" class="font-semibold"></span>
                     </h3>
                     <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -269,23 +269,23 @@
                 <div class="flex justify-between items-center mb-4">
                     <div class="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
                         <i class="fas fa-font mr-1"></i>
-                        عدد الكلمات: <span id="wordCount" class="font-semibold">0</span>
+                        {{ __('Word Count') }}: <span id="wordCount" class="font-semibold">0</span>
                     </div>
                     <button onclick="copyToClipboard()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
                         <i class="fas fa-copy mr-1"></i>
-                        نسخ النص
+                        {{ __('Copy Text') }}
                     </button>
                 </div>
                 
-                <textarea id="editContent" class="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm" style="direction: rtl; text-align: right;"></textarea>
+                <textarea id="editContent" class="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-editor"></textarea>
                 
                 <div class="flex justify-end space-x-3 mt-4">
                     <button onclick="closeEditModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition duration-200">
-                        إلغاء
+                        {{ __('Cancel') }}
                     </button>
                     <button onclick="saveFile()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-save mr-2"></i>
-                        حفظ التغييرات
+                        {{ __('Save Changes') }}
                     </button>
                 </div>
             </div>
@@ -299,7 +299,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900">
                         <i class="fas fa-scissors text-yellow-600 mr-2"></i>
-                        تقسيم الملف
+                        {{ __('Split File') }}
                     </h3>
                     <button onclick="closeSplitModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -307,12 +307,12 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">علامة التقسيم:</label>
-                    <input type="text" id="splitMarker" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="#####" placeholder="علامة التقسيم">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Split Marker') }}:</label>
+                    <input type="text" id="splitMarker" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="#####" placeholder="{{ __('Split Marker') }}">
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">معاينة التقسيم:</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Split Preview') }}:</label>
                     <div id="splitPreview" class="border border-gray-300 rounded-lg p-3 max-h-60 overflow-y-auto bg-gray-50">
                         <!-- Preview will be shown here -->
                     </div>
@@ -320,15 +320,15 @@
                 
                 <div class="flex justify-end space-x-3">
                     <button onclick="closeSplitModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200">
-                        إلغاء
+                        {{ __('Cancel') }}
                     </button>
                     <button onclick="previewSplit()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-eye mr-1"></i>
-                        معاينة
+                        {{ __('Preview') }}
                     </button>
                     <button onclick="splitFileExecute()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-scissors mr-1"></i>
-                        تقسيم
+                        {{ __('Split') }}
                     </button>
                 </div>
             </div>
@@ -342,7 +342,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900">
                         <i class="fas fa-object-group text-blue-600 mr-2"></i>
-                        دمج الملفات
+                        {{ __('Merge Files') }}
                     </h3>
                     <button onclick="closeMergeModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -350,24 +350,24 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">اختر الملفات المراد دمجها:</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Choose files to merge') }}:</label>
                     <select id="filesToMerge" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" multiple size="8">
                         <!-- Files will be loaded here -->
                     </select>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">عنوان الملف المدموج:</label>
-                    <input type="text" id="mergedTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="أدخل عنوان الملف المدموج">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Merged file title') }}:</label>
+                    <input type="text" id="mergedTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="{{ __('Enter merged file title') }}">
                 </div>
                 
                 <div class="flex justify-end space-x-3">
                     <button onclick="closeMergeModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200">
-                        إلغاء
+                        {{ __('Cancel') }}
                     </button>
                     <button onclick="mergeFiles()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-object-group mr-1"></i>
-                        دمج
+                        {{ __('Merge') }}
                     </button>
                 </div>
             </div>
@@ -381,7 +381,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900">
                         <i class="fas fa-sort text-yellow-600 mr-2"></i>
-                        إعادة ترتيب الفصول
+                        {{ __('Reorder Chapters') }}
                     </h3>
                     <button onclick="closeReorderModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -394,11 +394,11 @@
                 
                 <div class="flex justify-end space-x-3 mt-4">
                     <button onclick="closeReorderModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200">
-                        إلغاء
+                        {{ __('Cancel') }}
                     </button>
                     <button onclick="reorderChapters()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-sort mr-1"></i>
-                        إعادة الترتيب
+                        {{ __('Reorder') }}
                     </button>
                 </div>
             </div>
@@ -412,7 +412,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-red-600">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
-                        حذف متعدد
+                        {{ __('Multiple Delete') }}
                     </h3>
                     <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -420,7 +420,7 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">اختر الملفات المراد حذفها:</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Choose files to delete') }}:</label>
                     <div id="deleteFilesContainer" class="space-y-2 max-h-60 overflow-y-auto">
                         <!-- Files will be loaded here -->
                     </div>
@@ -429,18 +429,18 @@
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                     <div class="flex items-center">
                         <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
-                        <span class="text-sm text-yellow-800 font-medium">تحذير:</span>
+                        <span class="text-sm text-yellow-800 font-medium">{{ __('Warning') }}:</span>
                     </div>
-                    <p class="text-sm text-yellow-700 mt-1">سيتم إنشاء نسخة احتياطية قبل الحذف.</p>
+                    <p class="text-sm text-yellow-700 mt-1">{{ __('A backup will be created before deletion') }}</p>
                 </div>
                 
                 <div class="flex justify-end space-x-3">
                     <button onclick="closeDeleteModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200">
-                        إلغاء
+                        {{ __('Cancel') }}
                     </button>
                     <button onclick="deleteMultipleFiles()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200">
                         <i class="fas fa-trash mr-1"></i>
-                        حذف المحدد
+                        {{ __('Delete Selected') }}
                     </button>
                 </div>
             </div>
@@ -501,7 +501,7 @@
                 })
                 .catch(error => {
                     console.error('Error loading files:', error);
-                    showAlert('خطأ في تحميل الملفات', 'danger');
+                    showAlert('{{ __("Error loading files") }}', 'danger');
                 });
         }
         
@@ -545,7 +545,7 @@
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div class="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
                         <i class="fas fa-font mr-1"></i>
-                        ${file.word_count} كلمة
+                        ${file.word_count} {{ __('words') }}
                     </div>
                     <div class="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg text-sm">
                         <i class="fas fa-weight-hanging mr-1"></i>
@@ -556,15 +556,15 @@
                 <div class="grid grid-cols-3 gap-2">
                     <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center" onclick="editFile('${file.filename}')">
                         <i class="fas fa-edit mr-1"></i>
-                        تعديل
+                        {{ __('Edit File') }}
                     </button>
                     <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center" onclick="splitFile('${file.filename}')">
                         <i class="fas fa-scissors mr-1"></i>
-                        تقسيم
+                        {{ __('Split File') }}
                     </button>
                     <button class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center" onclick="deleteFile('${file.filename}')">
                         <i class="fas fa-trash mr-1"></i>
-                        حذف
+                        {{ __('Delete') }}
                     </button>
                 </div>
             `;
@@ -627,7 +627,7 @@
             })
             .catch(error => {
                 console.error('Error saving file:', error);
-                showAlert('خطأ في حفظ الملف', 'danger');
+                showAlert('{{ __("Error saving file") }}', 'danger');
             });
         }
         
@@ -640,7 +640,7 @@
                 showModal('splitModal');
             } else {
                 console.error('File not found:', filename);
-                showAlert('الملف غير موجود', 'danger');
+                showAlert('{{ __("File not found") }}', 'danger');
             }
         }
         
@@ -655,12 +655,12 @@
             
             const preview = document.getElementById('splitPreview');
             preview.innerHTML = `
-                <h6 class="font-semibold mb-2">سيتم تقسيم الملف إلى ${validSections.length} فصل:</h6>
+                <h6 class="font-semibold mb-2">{{ __('File will be split into') }} ${validSections.length} {{ __('chapters') }}:</h6>
                 <ul class="space-y-1">
                     ${validSections.map((section, index) => {
                         const lines = section.split('\n');
                         const title = lines[0].trim();
-                        return `<li class="text-sm"><strong>${index + 1}.</strong> ${title} (${section.split(' ').length} كلمة)</li>`;
+                        return `<li class="text-sm"><strong>${index + 1}.</strong> ${title} (${section.split(' ').length} {{ __('words') }})</li>`;
                     }).join('')}
                 </ul>
             `;
@@ -670,7 +670,7 @@
         function splitFileExecute() {
             if (!currentFile) {
                 console.error('No current file selected');
-                showAlert('لم يتم اختيار ملف', 'danger');
+                showAlert('{{ __("File not found") }}', 'danger');
                 return;
             }
             
@@ -707,7 +707,7 @@
             })
             .catch(error => {
                 console.error('Error splitting file:', error);
-                showAlert('خطأ في تقسيم الملف', 'danger');
+                showAlert('{{ __("Error splitting file") }}', 'danger');
             });
         }
         
@@ -732,12 +732,12 @@
             const newTitle = document.getElementById('mergedTitle').value;
             
             if (selectedFiles.length < 2) {
-                showAlert('يجب اختيار ملفين على الأقل للدمج', 'warning');
+                showAlert('{{ __("Please select at least two files to merge") }}', 'warning');
                 return;
             }
             
             if (!newTitle) {
-                showAlert('يجب إدخال عنوان للملف المدموج', 'warning');
+                showAlert('{{ __("Please enter a title for the merged file") }}', 'warning');
                 return;
             }
             
@@ -765,7 +765,7 @@
             })
             .catch(error => {
                 console.error('Error merging files:', error);
-                showAlert('خطأ في دمج الملفات', 'danger');
+                showAlert('{{ __("Error merging files") }}', 'danger');
             });
         }
         
@@ -851,7 +851,7 @@
             })
             .catch(error => {
                 console.error('Error reordering chapters:', error);
-                showAlert('خطأ في إعادة الترتيب', 'danger');
+                showAlert('{{ __("Error reordering chapters") }}', 'danger');
             });
         }
         
@@ -868,7 +868,7 @@
                     <input class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500" 
                            type="checkbox" value="${file.filename}" id="delete_${file.filename}">
                     <label class="text-sm text-gray-700 cursor-pointer" for="delete_${file.filename}" title="${file.filename}">
-                        ${displayName} (${file.word_count} كلمة)
+                        ${displayName} (${file.word_count} {{ __('words') }})
                     </label>
                 `;
                 container.appendChild(div);
@@ -882,11 +882,11 @@
             const selectedFiles = Array.from(document.querySelectorAll('#deleteFilesContainer input:checked')).map(input => input.value);
             
             if (selectedFiles.length === 0) {
-                showAlert('يجب اختيار ملف واحد على الأقل للحذف', 'warning');
+                showAlert('{{ __("Please select at least one file to delete") }}', 'warning');
                 return;
             }
             
-            if (!confirm(`هل أنت متأكد من حذف ${selectedFiles.length} ملف؟`)) {
+            if (!confirm(`{{ __('Are you sure you want to delete') }} ${selectedFiles.length} {{ __('files') }}?`)) {
                 return;
             }
             
@@ -913,13 +913,13 @@
             })
             .catch(error => {
                 console.error('Error deleting files:', error);
-                showAlert('خطأ في حذف الملفات', 'danger');
+                showAlert('{{ __("Error deleting files") }}', 'danger');
             });
         }
         
         // Delete single file
         function deleteFile(filename) {
-            if (!confirm(`هل أنت متأكد من حذف الملف ${filename}؟`)) {
+            if (!confirm(`{{ __('Are you sure you want to delete the file') }} ${filename}?`)) {
                 return;
             }
             
@@ -945,7 +945,7 @@
             })
             .catch(error => {
                 console.error('Error deleting file:', error);
-                showAlert('خطأ في حذف الملف', 'danger');
+                showAlert('{{ __("Error deleting file") }}', 'danger');
             });
         }
         
@@ -953,7 +953,7 @@
         function downloadAll() {
             // Create a zip file with all text files
             // This would require additional backend implementation
-            showAlert('سيتم إضافة هذه الميزة قريباً', 'info');
+            showAlert('{{ __("This feature will be added soon") }}', 'info');
         }
         
         // Copy to clipboard
@@ -961,7 +961,7 @@
             const textarea = document.getElementById('editContent');
             textarea.select();
             document.execCommand('copy');
-            showAlert('تم نسخ النص إلى الحافظة', 'success');
+            showAlert('{{ __("Text copied to clipboard") }}', 'success');
         }
         
         // Format file size
