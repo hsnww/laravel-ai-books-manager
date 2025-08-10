@@ -59,7 +59,7 @@ class BookProcessor
             // حفظ النص المستخرج في ملف
             $textFilePath = $this->saveExtractedText($file, $extractionResult['processed_text']);
             
-            // إنشاء أو تحديث الكتاب
+            // إنشاء أو تحديث الكتاب (بدون إضافة معلومات الكتاب)
             $book = $this->createOrUpdateBook($file, $extractionResult);
             
             return [
@@ -161,7 +161,7 @@ class BookProcessor
     }
     
     /**
-     * إنشاء أو تحديث الكتاب
+     * إنشاء أو تحديث الكتاب (بدون إضافة معلومات الكتاب)
      */
     private function createOrUpdateBook(FileManager $file, array $extractionResult): Book
     {
@@ -177,9 +177,9 @@ class BookProcessor
     }
     
     /**
-     * إنشاء معلومات الكتاب
+     * إنشاء معلومات الكتاب (محفوظة للاستخدام المستقبلي عبر توجيهات الذكاء الاصطناعي)
      */
-    private function createBookInfo(Book $book, array $extractionResult): BookInfo
+    public function createBookInfo(Book $book, array $extractionResult): BookInfo
     {
         // استخراج عنوان الكتاب من النص (أول 100 حرف)
         $title = $this->extractTitle($extractionResult['processed_text']);

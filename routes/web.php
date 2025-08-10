@@ -8,6 +8,7 @@ use App\Http\Controllers\AiTrialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/books', [App\Http\Controllers\HomeController::class, 'books'])->name('books.index');
 
 // Book Routes
 Route::prefix('books')->group(function () {
@@ -15,6 +16,7 @@ Route::prefix('books')->group(function () {
     Route::get('/{bookIdentify}/text/{textId}/{type}', [App\Http\Controllers\BookController::class, 'getProcessedText'])->name('books.text');
     Route::get('/{bookIdentify}/texts/{type}/{language}', [App\Http\Controllers\BookController::class, 'getTextsByType'])->name('books.texts-by-type');
     Route::get('/{bookIdentify}/stats/{language}', [App\Http\Controllers\BookController::class, 'getProcessingStatsByLanguage'])->name('books.stats-by-language');
+    Route::get('/{bookIdentify}/info/{language}', [App\Http\Controllers\BookController::class, 'getBookInfoByLanguage'])->name('books.info-by-language');
 });
 
 // File Manager Routes - Protected by authentication

@@ -58,8 +58,11 @@ class ListFileManagers extends ListRecords
     {
         return $table
             ->columns([
-                \Filament\Tables\Columns\TextColumn::make('book_folder')
+                \Filament\Tables\Columns\TextColumn::make('book_id')
                     ->label(__('Book ID'))
+                    ->getStateUsing(function ($record) {
+                        return self::extractBookIdFromPath($record->path);
+                    })
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
@@ -214,5 +217,17 @@ class ListFileManagers extends ListRecords
             ->where('path', 'not like', '%uploads%')
             ->groupBy('folder', 'book_folder')
             ->orderBy('last_modified', 'desc');
+    }
+
+    /**
+     * استخراج معرف الكتاب من المسار
+     */
+    public static function extractBookIdFromPath($path): ?string
+    {
+        // البحث عن معرف الكتاب في المسار
+        if (preg_match('/book(\d+)_\d{8,}/', $path, $matches)) {
+            return 'book' . $matches[1] . '_' . substr($matches[0], 4);
+        }
+        return null;
     }
 }

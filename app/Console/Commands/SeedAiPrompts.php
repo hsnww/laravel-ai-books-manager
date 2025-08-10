@@ -26,8 +26,11 @@ class SeedAiPrompts extends Command
      */
     public function handle()
     {
-        $this->info('بدء إضافة التوجيهات الافتراضية...');
-
+        $this->info('Seeding AI prompts...');
+        
+        // Clear existing prompts first
+        AiPrompt::truncate();
+        
         $prompts = [
             // تحسين النص - العربية
             [
@@ -145,7 +148,28 @@ class SeedAiPrompts extends Command
                 'description' => 'توجيه لاستخراج معلومات الكتاب من النص',
                 'language' => 'arabic',
                 'prompt_type' => 'extract_info',
-                'prompt_text' => 'قم باستخراج معلومات الكتاب التالية من النص: عنوان الكتاب، اسم المؤلف، نبذة مختصرة عن الكتاب. اكتب المعلومات باللغة العربية.',
+                'prompt_text' => "أنت متخصص في استخراج معلومات الكتب. مهمتك إنشاء معلومات الكتاب من النص التالي:
+
+المعلومات المطلوبة:
+- عنوان الكتاب
+- اسم المؤلف
+- ملخص مختصر في حدود 200 كلمة
+
+تعليمات الاستخراج:
+- أنشئ جميع معلومات الكتاب باللغة {language} بما في ذلك عنوان الكتاب واسم المؤلف
+- إذا لم تجد معلومة، اكتب \"غير محدد\" أو ما يقابلها باللغة المحددة
+- اكتب المعلومات مباشرة باللغة المطلوبة
+- اكتب ملخصاً مكتملاً ومفيداً دون انقطاع أو عبارات مثل \"بقية الملخص غير متوفرة\" أو \"يمكن استنتاج\"
+- تأكد من أن الملخص ينتهي بجملة مكتملة ومنطقية
+- لا تستخدم علامات الحذف (...) في نهاية الملخص
+
+النص المراد استخراج المعلومات منه:
+{text}
+
+التنسيق المطلوب:
+العنوان: [عنوان الكتاب]
+المؤلف: [اسم المؤلف]
+الملخص: [ملخص مختصر ومكتمل]",
                 'is_active' => true,
                 'is_default' => true,
             ],
@@ -156,7 +180,196 @@ class SeedAiPrompts extends Command
                 'description' => 'Prompt to extract book information from text',
                 'language' => 'english',
                 'prompt_type' => 'extract_info',
-                'prompt_text' => 'Please extract the following book information from the text: book title, author name, brief summary of the book. Write the information in English.',
+                'prompt_text' => "You are a specialist in extracting book information. Your task is to create book information from the following text:
+
+Required Information:
+- Book title
+- Author name
+- Brief summary within 200 words
+
+Extraction Instructions:
+- Create all book information in {language} including book title and author name
+- If you don't find information, write \"Not specified\" or its equivalent in the specified language
+- Write information directly in the required language
+- Write a complete and useful summary without interruption or phrases like \"remaining summary not available\" or \"can be inferred\"
+- Ensure the summary ends with a complete and logical sentence
+- Do not use ellipsis (...) at the end of the summary
+
+Text to extract information from:
+{text}
+
+Required Format:
+Title: [Book Title]
+Author: [Author Name]
+Summary: [Complete and brief summary]",
+                'is_active' => true,
+                'is_default' => true,
+            ],
+            
+            // كتابة مقال احترافي للمدونة - العربية (محسن)
+            [
+                'name' => 'كتابة مقال احترافي للمدونة - محسن',
+                'description' => 'برومبت محسن لكتابة مقالات احترافية للمدونة مع شمول جميع الفصول واستبعاد نصوص العجر',
+                'language' => 'arabic',
+                'prompt_type' => 'blog_article',
+                'prompt_text' => "أنت كاتب محترف متخصص في كتابة مقالات معرفية احترافية للمدونات. مهمتك كتابة مقال شامل ومفصل عن كتاب محدد.
+
+**المتطلبات الأساسية:**
+- **الحد الأدنى: 900 كلمة، الحد الأقصى: 2000 كلمة**
+- **شمول جميع فصول الكتاب:** يجب أن تغطي المقالة جميع الفصول المتوفرة في النص، لا تتوقف عند فصل معين
+- **استبعاد نصوص العجر:** تجاهل تماماً أي نصوص عجر أو فهارس أو قوائم مراجع، ركز فقط على المحتوى الأساسي للكتاب
+- **تحليل شامل:** اقرأ النص كاملاً قبل البدء في الكتابة
+
+**هيكل المقال المطلوب:**
+
+**1. العنوان الرئيسي (H1):**
+- عنوان جذاب ومقنع يعكس محتوى الكتاب
+- استخدام كلمات مفتاحية طبيعية
+
+**2. مقدمة قوية (200-300 كلمة):**
+- تعريف بالكتاب ومجال تخصصه
+- إشارة لأهمية الموضوع في الوقت الحالي
+- إثارة فضول القارئ
+
+**3. معلومات الكتاب الأساسية:**
+- **عنوان الكتاب:** [العنوان الأصلي والعنوان المترجم إن وجد]
+- **المؤلف:** [اسم المؤلف مع نبذة مختصرة عن سيرته إن توفرت]
+- **التصنيف:** [تصنيف دقيق مثل: تنمية ذاتية، رواية، علم نفس، إدارة، اقتصاد، علوم اجتماعية، فلسفة، تاريخ، إلخ]
+- **سنة النشر:** [إن توفرت]
+- **الناشر:** [إن توفر]
+- **عدد الصفحات:** [إن توفر]
+
+**4. ملخص شامل للكتاب (300-400 كلمة):**
+- عرض الأفكار الرئيسية والمواضيع المطروحة
+- شرح المنهجية أو الأسلوب المستخدم
+- إبراز النقاط المميزة والجديدة
+
+**5. تحليل المحتوى (400-600 كلمة):**
+- **الفصل الأول:** [تحليل مفصل]
+- **الفصل الثاني:** [تحليل مفصل]
+- **الفصل الثالث:** [تحليل مفصل]
+- [استمر في تحليل جميع الفصول المتوفرة]
+
+**6. النقاط الرئيسية (200-300 كلمة):**
+- استخراج 5-7 نقاط رئيسية من الكتاب
+- عرضها بشكل منظم ومقنع
+
+**7. مقتبسات مختارة (2-3 مقتبسات):**
+- اختيار مقتبسات قوية تعبر عن الأفكار الرئيسية
+- إضافة سياق لكل مقتبس
+
+**8. التقييم والخلاصة (200-300 كلمة):**
+- تقييم شامل للكتاب
+- تحديد الجمهور المستهدف
+- توصية للقراء
+
+**متطلبات SEO:**
+- استخدام 4-5 عناوين فرعية (H2, H3)
+- كل فقرة لا تزيد عن 250 كلمة
+- استخدام كلمات مفتاحية طبيعية ومتكررة
+- تنسيق سهل القراءة مع مسافات مناسبة
+
+**الأسلوب:**
+- لغة عربية فصيحة ومهنية
+- أسلوب إعلامي محايد
+- جمل واضحة ومباشرة
+- تجنب التكرار والحشو
+
+**تحذير مهم:**
+- اقرأ النص كاملاً قبل البدء في الكتابة
+- لا تتوقف عند فصل معين، استمر في تحليل جميع الفصول
+- تجاهل تماماً نصوص العجر والفهارس والقوائم
+- ركز فقط على المحتوى الأساسي للكتاب
+
+استخدم النص التالي لكتابة المقال:
+
+{text}
+
+اكتب المقال باللغة العربية.",
+                'is_active' => true,
+                'is_default' => true,
+            ],
+            
+            // كتابة مقال احترافي للمدونة - الإنجليزية (محسن)
+            [
+                'name' => 'Professional Blog Article Writing - Enhanced',
+                'description' => 'Enhanced prompt for writing professional blog articles covering all chapters and excluding filler text',
+                'language' => 'english',
+                'prompt_type' => 'blog_article',
+                'prompt_text' => "You are a professional content writer specializing in creating comprehensive blog articles for knowledge-based websites. Your task is to write a detailed and engaging article about a specific book.
+
+**Core Requirements:**
+- **Minimum: 900 words, Maximum: 2000 words**
+- **Cover all book chapters:** The article must cover all available chapters in the text, do not stop at any specific chapter
+- **Exclude filler text:** Completely ignore any filler text, indexes, or reference lists, focus only on the book's core content
+- **Comprehensive analysis:** Read the entire text before starting to write
+
+**Required Article Structure:**
+
+**1. Main Headline (H1):**
+- Compelling and convincing title that reflects the book's content
+- Use natural keywords
+
+**2. Strong Introduction (200-300 words):**
+- Introduce the book and its field of expertise
+- Reference the topic's current importance
+- Arouse reader curiosity
+
+**3. Basic Book Information:**
+- **Book Title:** [Original title and translated title if available]
+- **Author:** [Author name with brief biography if available]
+- **Category:** [Accurate classification such as: self-development, novel, psychology, management, economics, social sciences, philosophy, history, etc.]
+- **Publication Year:** [If available]
+- **Publisher:** [If available]
+- **Number of Pages:** [If available]
+
+**4. Comprehensive Book Summary (300-400 words):**
+- Present main ideas and topics discussed
+- Explain methodology or approach used
+- Highlight distinctive and new points
+
+**5. Content Analysis (400-600 words):**
+- **Chapter One:** [Detailed analysis]
+- **Chapter Two:** [Detailed analysis]
+- **Chapter Three:** [Detailed analysis]
+- [Continue analyzing all available chapters]
+
+**6. Key Points (200-300 words):**
+- Extract 5-7 main points from the book
+- Present them in an organized and convincing manner
+
+**7. Selected Quotes (2-3 quotes):**
+- Choose strong quotes that express main ideas
+- Add context for each quote
+
+**8. Evaluation and Conclusion (200-300 words):**
+- Comprehensive book evaluation
+- Identify target audience
+- Reader recommendations
+
+**SEO Requirements:**
+- Use 4-5 subheadings (H2, H3)
+- Each paragraph no more than 250 words
+- Use natural and repeated keywords
+- Easy-to-read formatting with appropriate spacing
+
+**Writing Style:**
+- Professional and clear English
+- Informative and neutral tone
+- Clear and direct sentences
+- Avoid repetition and filler
+
+**Important Warning:**
+- Read the entire text before starting to write
+- Do not stop at any specific chapter, continue analyzing all chapters
+- Completely ignore filler text, indexes, and lists
+- Focus only on the book's core content
+
+Use the following text to write the article:
+
+{text}
+
+Write the article in English.",
                 'is_active' => true,
                 'is_default' => true,
             ],

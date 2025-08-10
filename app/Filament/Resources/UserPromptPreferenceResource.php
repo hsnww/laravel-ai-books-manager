@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserPromptPreferenceResource\Pages;
 use App\Models\UserPromptPreference;
+use App\Helpers\LanguageHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -53,14 +54,10 @@ class UserPromptPreferenceResource extends Resource
                     ->required()
                     ->searchable(),
 
-                Forms\Components\Select::make('preferred_language')
-                    ->label('اللغة المفضلة')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                    ])
-                    ->required()
-                    ->default('arabic'),
+                Forms\Components\Select::make('language')
+                    ->label('اللغة')
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish())
+                    ->required(),
 
                 Forms\Components\Select::make('default_prompt_id')
                     ->label('التوجيه الافتراضي')
@@ -78,7 +75,7 @@ class UserPromptPreferenceResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('preferred_language')
+                Tables\Columns\TextColumn::make('language')
                     ->label('اللغة المفضلة')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -104,12 +101,9 @@ class UserPromptPreferenceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('preferred_language')
-                    ->label('اللغة المفضلة')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                    ]),
+                Tables\Filters\SelectFilter::make('language')
+                    ->label('اللغة')
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

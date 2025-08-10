@@ -34,6 +34,14 @@ class AiProcessorController extends Controller
             ->select('books_info.title', 'books_info.author', 'books_info.language')
             ->first();
         
+        // إذا لم يتم العثور على معلومات، جرب الحصول على معلومات باللغة الافتراضية
+        if (!$bookInfo) {
+            $book = \App\Models\Book::where('book_identify', $bookId)->first();
+            if ($book) {
+                $bookInfo = $book->getBookInfoByLanguage();
+            }
+        }
+        
         // Get processing statistics
         $processingStats = $this->getProcessingStatistics($bookId);
         
@@ -114,73 +122,55 @@ class AiProcessorController extends Controller
             'book_id' => 'required|string',
             'selected_files' => 'required|array|min:1',
             'processing_options' => 'required|array|min:1',
+            'output_method' => 'required|in:single,multiple',
             'target_language' => 'required|string'
         ]);
         
         $results = [];
         $bookId = $request->book_id;
+        $outputMethod = $request->output_method;
         
         Log::info('Validation passed', [
             'book_id' => $bookId,
             'selected_files_count' => count($request->selected_files),
             'processing_options' => $request->processing_options,
+            'output_method' => $outputMethod,
             'target_language' => $request->target_language
         ]);
         
-        foreach ($request->selected_files as $filename) {
-                            Log::info('Processing file', [
-                    'filename' => $filename,
-                    'book_identify' => $bookId
-                ]);
-            
+        // Handle single file output method
+        if ($outputMethod === 'single') {
             try {
-                // Get file content
-                $fileContent = $this->getFileContent($bookId, $filename); // $bookId is actually book_identify
+                // Merge all selected files content
+                $mergedContent = '';
+                $fileNames = [];
                 
-                if ($fileContent === false) {
-                    Log::error('File content not found', [
-                        'filename' => $filename,
-                        'book_identify' => $bookId
-                    ]);
-                    $results[] = [
-                        'filename' => $filename,
-                        'success' => false,
-                        'error' => 'لا يمكن قراءة الملف'
-                    ];
-                    continue;
+                foreach ($request->selected_files as $filename) {
+                    $fileContent = $this->getFileContent($bookId, $filename);
+                    if ($fileContent !== false) {
+                        $mergedContent .= "\n\n=== " . $filename . " ===\n\n" . $fileContent;
+                        $fileNames[] = $filename;
+                    }
                 }
                 
-                Log::info('File content loaded', [
-                    'filename' => $filename,
-                    'content_length' => strlen($fileContent)
-                ]);
+                if (empty($mergedContent)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'لا يمكن قراءة أي من الملفات المحددة'
+                    ]);
+                }
                 
-                // Process with AI
-                Log::info('Calling AI processor service', [
-                    'filename' => $filename,
-                    'book_identify' => $bookId,
-                    'processing_options' => $request->processing_options,
-                    'target_language' => $request->target_language
-                ]);
-                
+                // Process merged content with AI
                 $result = $this->aiProcessorService->processText(
-                    $fileContent,
+                    $mergedContent,
                     $request->processing_options,
                     $request->target_language,
-                    $bookId, // This is actually book_identify
-                    $filename
+                    $bookId,
+                    'merged_files_' . implode('_', array_slice($fileNames, 0, 3)) // Use first 3 filenames for merged file name
                 );
                 
-                Log::info('AI processing result', [
-                    'filename' => $filename,
-                    'success' => $result['success'],
-                    'has_text' => isset($result['text']),
-                    'has_error' => isset($result['error']),
-                    'processing_time' => $result['processing_time'] ?? null
-                ]);
-                
                 $results[] = [
-                    'filename' => $filename,
+                    'filename' => 'ملف مدموج (' . count($fileNames) . ' ملف)',
                     'success' => $result['success'],
                     'text' => $result['text'] ?? null,
                     'error' => $result['error'] ?? null,
@@ -188,18 +178,91 @@ class AiProcessorController extends Controller
                 ];
                 
             } catch (\Exception $e) {
-                Log::error('AI Processing Error for file ' . $filename . ': ' . $e->getMessage());
+                Log::error('AI Processing Error for merged files: ' . $e->getMessage());
                 
                 $results[] = [
-                    'filename' => $filename,
+                    'filename' => 'ملف مدموج',
                     'success' => false,
-                    'error' => 'خطأ في معالجة الملف: ' . $e->getMessage()
+                    'error' => 'خطأ في معالجة الملفات المدمجة: ' . $e->getMessage()
                 ];
+            }
+        } else {
+            // Handle multiple files output method (original behavior)
+            foreach ($request->selected_files as $filename) {
+                Log::info('Processing file', [
+                    'filename' => $filename,
+                    'book_identify' => $bookId
+                ]);
+                
+                try {
+                    // Get file content
+                    $fileContent = $this->getFileContent($bookId, $filename); // $bookId is actually book_identify
+                    
+                    if ($fileContent === false) {
+                        Log::error('File content not found', [
+                            'filename' => $filename,
+                            'book_identify' => $bookId
+                        ]);
+                        $results[] = [
+                            'filename' => $filename,
+                            'success' => false,
+                            'error' => 'لا يمكن قراءة الملف'
+                        ];
+                        continue;
+                    }
+                    
+                    Log::info('File content loaded', [
+                        'filename' => $filename,
+                        'content_length' => strlen($fileContent)
+                    ]);
+                    
+                    // Process with AI
+                    Log::info('Calling AI processor service', [
+                        'filename' => $filename,
+                        'book_identify' => $bookId,
+                        'processing_options' => $request->processing_options,
+                        'target_language' => $request->target_language
+                    ]);
+                    
+                    $result = $this->aiProcessorService->processText(
+                        $fileContent,
+                        $request->processing_options,
+                        $request->target_language,
+                        $bookId, // This is actually book_identify
+                        $filename
+                    );
+                    
+                    Log::info('AI processing result', [
+                        'filename' => $filename,
+                        'success' => $result['success'],
+                        'has_text' => isset($result['text']),
+                        'has_error' => isset($result['error']),
+                        'processing_time' => $result['processing_time'] ?? null
+                    ]);
+                    
+                    $results[] = [
+                        'filename' => $filename,
+                        'success' => $result['success'],
+                        'text' => $result['text'] ?? null,
+                        'error' => $result['error'] ?? null,
+                        'processing_time' => $result['processing_time'] ?? null
+                    ];
+                    
+                } catch (\Exception $e) {
+                    Log::error('AI Processing Error for file ' . $filename . ': ' . $e->getMessage());
+                    
+                    $results[] = [
+                        'filename' => $filename,
+                        'success' => false,
+                        'error' => 'خطأ في معالجة الملف: ' . $e->getMessage()
+                    ];
+                }
             }
         }
         
         Log::info('=== AI PROCESSOR CONTROLLER COMPLETED ===', [
             'total_files' => count($request->selected_files),
+            'output_method' => $outputMethod,
             'successful_results' => count(array_filter($results, fn($r) => $r['success'])),
             'failed_results' => count(array_filter($results, fn($r) => !$r['success']))
         ]);

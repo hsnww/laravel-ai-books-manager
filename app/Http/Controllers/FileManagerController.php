@@ -28,6 +28,14 @@ class FileManagerController extends Controller
             ->select('books_info.title', 'books_info.author', 'books_info.language')
             ->first();
         
+        // إذا لم يتم العثور على معلومات، جرب الحصول على معلومات باللغة الافتراضية
+        if (!$bookInfo) {
+            $book = \App\Models\Book::where('book_identify', $bookId)->first();
+            if ($book) {
+                $bookInfo = $book->getBookInfoByLanguage();
+            }
+        }
+        
         return view('file-manager.show', compact('files', 'bookId', 'bookInfo'));
     }
     

@@ -139,19 +139,6 @@
                 {{ __('Previous Processing Statistics') }}
             </h2>
             
-            <!-- Debug Information -->
-            @if(config('app.debug'))
-                <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 class="font-semibold text-yellow-800 mb-2">معلومات التصحيح:</h4>
-                    <div class="text-sm text-yellow-700">
-                        <p>عدد الملخصات: {{ isset($processingStats['summarized']) ? $processingStats['summarized']->count() : 'غير محدد' }}</p>
-                        <p>عدد النقاط: {{ isset($processingStats['formatting']) ? $processingStats['formatting']->count() : 'غير محدد' }}</p>
-                        <p>عدد الترجمات: {{ isset($processingStats['translated']) ? $processingStats['translated']->count() : 'غير محدد' }}</p>
-                        <p>عدد التحسينات: {{ isset($processingStats['enhanced']) ? $processingStats['enhanced']->count() : 'غير محدد' }}</p>
-                    </div>
-                </div>
-            @endif
-            
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Summarized Texts -->
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
@@ -256,6 +243,43 @@
             </div>
         </div>
 
+        <!-- Output Method -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-file-export text-indigo-600"></i>
+                {{ __('Output Method') }}
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border rounded-lg p-3 hover:bg-gray-50 transition duration-200">
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="output_method" value="single" 
+                               class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500" checked>
+                        <div>
+                            <div class="font-medium text-gray-900">{{ __('Single File Output') }}</div>
+                            <div class="text-sm text-gray-600">{{ __('Merge all selected files into one output file') }}</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="border rounded-lg p-3 hover:bg-gray-50 transition duration-200">
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="radio" name="output_method" value="multiple" 
+                               class="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <div class="font-medium text-gray-900">{{ __('Multiple Files Output') }}</div>
+                            <div class="text-sm text-gray-600">{{ __('Process each file separately and create individual output files') }}</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-600 mt-2">
+                <i class="fas fa-info-circle"></i>
+                {{ __('Choose single file for book information extraction, multiple files for detailed processing') }}
+            </div>
+        </div>
+
         <!-- Target Language -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold mb-4">
@@ -344,6 +368,8 @@
             const processingOption = document.querySelector('input[name="processing_options"]:checked');
             const processingOptions = processingOption ? [processingOption.value] : [];
             
+            const outputMethod = document.querySelector('input[name="output_method"]:checked').value;
+            
             const targetLanguage = document.getElementById('target_language').value;
             
             if (selectedFiles.length === 0) {
@@ -353,6 +379,11 @@
             
             if (processingOptions.length === 0) {
                 alert('يرجى اختيار نوع معالجة واحد');
+                return;
+            }
+
+            if (!outputMethod) {
+                alert('يرجى اختيار طريقة الإخراج');
                 return;
             }
             
@@ -376,6 +407,7 @@
                     book_id: '{{ $bookId }}',
                     selected_files: selectedFiles,
                     processing_options: processingOptions,
+                    output_method: outputMethod,
                     target_language: targetLanguage
                 })
             })

@@ -95,6 +95,7 @@ class UploadManagerResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->where('folder', 'uploads'))
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('File Name'))

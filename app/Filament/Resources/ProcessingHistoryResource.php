@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProcessingHistoryResource\Pages;
 use App\Models\ProcessingHistory;
+use App\Helpers\LanguageHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -71,10 +72,10 @@ class ProcessingHistoryResource extends Resource
                     ])
                     ->required(),
 
-                Forms\Components\TextInput::make('target_language')
+                Forms\Components\Select::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->required()
-                    ->maxLength(50),
+                    ->options(LanguageHelper::getLanguageOptionsForForms())
+                    ->required(),
 
                 Forms\Components\Select::make('processing_status')
                     ->label('حالة المعالجة')
@@ -180,24 +181,7 @@ class ProcessingHistoryResource extends Resource
 
                 Tables\Filters\SelectFilter::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->options([
-                        'Arabic' => 'العربية',
-                        'English' => 'الإنجليزية',
-                        'French' => 'الفرنسية',
-                        'Spanish' => 'الإسبانية',
-                        'German' => 'الألمانية',
-                        'Italian' => 'الإيطالية',
-                        'Portuguese' => 'البرتغالية',
-                        'Russian' => 'الروسية',
-                        'Chinese' => 'الصينية',
-                        'Japanese' => 'اليابانية',
-                        'Korean' => 'الكورية',
-                        'Turkish' => 'التركية',
-                        'Persian' => 'الفارسية',
-                        'Urdu' => 'الأردية',
-                        'Hindi' => 'الهندية',
-                        'Bengali' => 'البنغالية',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForForms()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

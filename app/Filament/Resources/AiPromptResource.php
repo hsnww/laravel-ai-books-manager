@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AiPromptResource\Pages;
 use App\Models\AiPrompt;
+use App\Helpers\LanguageHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -58,13 +59,9 @@ class AiPromptResource extends Resource
                     ->maxLength(65535),
 
                 Forms\Components\Select::make('language')
-                    ->label('لغة التوجيه')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                    ])
-                    ->required()
-                    ->default('arabic'),
+                    ->label('اللغة')
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish())
+                    ->required(),
 
                 Forms\Components\Select::make('prompt_type')
                     ->label('نوع التوجيه')
@@ -74,6 +71,7 @@ class AiPromptResource extends Resource
                         'translate' => 'ترجمة النص',
                         'enhance' => 'تحسين النص',
                         'improve_format' => 'تلخيص النص على هيئة نقاط',
+                        'blog_article' => 'كتابة مقال احترافي للمدونة',
                     ])
                     ->required(),
 
@@ -117,6 +115,7 @@ class AiPromptResource extends Resource
                         'translate' => 'ترجمة النص',
                         'enhance' => 'تحسين النص',
                         'improve_format' => 'تلخيص النص على هيئة نقاط',
+                        'blog_article' => 'كتابة مقال احترافي للمدونة',
                         default => $state,
                     })
                     ->color(fn (string $state): string => match ($state) {
@@ -125,6 +124,7 @@ class AiPromptResource extends Resource
                         'translate' => 'info',
                         'enhance' => 'success',
                         'improve_format' => 'secondary',
+                        'blog_article' => 'primary',
                         default => 'gray',
                     }),
 
@@ -173,14 +173,12 @@ class AiPromptResource extends Resource
                         'translate' => 'ترجمة النص',
                         'enhance' => 'تحسين النص',
                         'improve_format' => 'تلخيص النص على هيئة نقاط',
+                        'blog_article' => 'كتابة مقال احترافي للمدونة',
                     ]),
 
                 Tables\Filters\SelectFilter::make('language')
                     ->label('اللغة')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish()),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('نشط'),

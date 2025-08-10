@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ \App\Helpers\LanguageHelper::getTextDirection() }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -41,14 +41,19 @@
                     <!-- Language Switcher -->
                     <div class="relative">
                         <select id="language-switcher" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>العربية</option>
-                            <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
+                            <option value="ar" {{ \App\Helpers\LanguageHelper::getCurrentLanguage() == 'ar' ? 'selected' : '' }}>العربية</option>
+                            <option value="en" {{ \App\Helpers\LanguageHelper::getCurrentLanguage() == 'en' ? 'selected' : '' }}>English</option>
                         </select>
                     </div>
                     
                     <!-- Navigation -->
             @if (Route::has('login'))
                         <nav class="flex items-center space-x-4 rtl:space-x-reverse">
+                            <a href="{{ route('books.index') }}" 
+                               class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
+                                <i class="fas fa-books mr-2"></i>
+                                {{ __('Books') }}
+                            </a>
                     @auth
                                 <a href="{{ route('filament.admin.pages.dashboard') }}" 
                                    class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
@@ -140,72 +145,87 @@
 
         <!-- Books Section -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
                     <i class="fas fa-books mr-2"></i>
-                    {{ __('Recent Books') }}
+                    {{ __('Latest Books') }}
                 </h3>
-                @auth
-                    <a href="{{ route('filament.admin.pages.dashboard') }}" 
-                       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
-                        <i class="fas fa-plus mr-2"></i>
-                        {{ __('Add New Book') }}
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('books.index') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
+                        <i class="fas fa-list mr-2"></i>
+                        {{ __('View All Books') }}
                     </a>
-                @endauth
+                    @auth
+                        <a href="{{ route('filament.admin.pages.dashboard') }}" 
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
+                            <i class="fas fa-plus mr-2"></i>
+                            {{ __('Add New Book') }}
+                        </a>
+                    @endauth
+                </div>
             </div>
 
             @if($books->count() > 0)
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
                     @foreach($books as $book)
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex items-center">
-                                    <i class="fas fa-book text-blue-500 mr-2"></i>
-                                    <h4 class="font-semibold text-gray-900 dark:text-white">
-                                        {{ $book->book_identify }}
-                                    </h4>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition duration-300 border border-gray-200 dark:border-gray-700 flex flex-col" data-book-id="{{ $book->book_identify }}">
+                            <div class="p-6 flex-1 flex flex-col">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-book text-blue-600 text-2xl mr-3"></i>
+                                        <div>
+                                            <h3 class="font-bold text-gray-900 dark:text-white text-lg">{{ $book->book_identify }}</h3>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('Book ID') }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                                            {{ $book->book_language ?? 'Unknown' }}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                                    {{ $book->book_language }}
-                                </span>
-                            </div>
-                            
-                            <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                                <p><i class="fas fa-calendar mr-1"></i> {{ $book->created_at->format('Y-m-d H:i') }}</p>
-                            </div>
 
-                            @if($book->bookInfo)
-                                <div class="border-t border-gray-200 dark:border-gray-600 pt-3">
-                                    <h5 class="font-medium text-gray-900 dark:text-white mb-1">
-                                        {{ $book->bookInfo->title }}
-                                    </h5>
-                                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                                        {{ __('Author') }}: {{ $book->bookInfo->author }}
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                                        {{ Str::limit($book->bookInfo->book_summary, 100) }}
-                                    </p>
+                                @if($book->preferred_book_info)
+                                    <div class="space-y-2 mb-4 flex-1">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ __('Title') }}:</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 book-title">{{ $book->preferred_book_info->title }}</p>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ __('Author') }}:</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 book-author">{{ $book->preferred_book_info->author }}</p>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ __('Language') }}:</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 book-language">{{ $book->preferred_book_info->language }}</p>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                                    <p><i class="fas fa-calendar mr-1"></i> {{ $book->created_at->format('Y-m-d H:i') }}</p>
                                 </div>
-                            @endif
 
-                            <div class="mt-4 flex space-x-2 rtl:space-x-reverse">
-                                <a href="{{ route('books.show', $book->book_identify) }}" 
-                                   class="inline-flex items-center px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition duration-200">
-                                    <i class="fas fa-eye mr-1"></i>
-                                    {{ __('View Book') }}
-                                </a>
-                                @auth
-                                    <a href="{{ route('ai-processor.show', $book->book_identify) }}" 
-                                       class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition duration-200">
-                                        <i class="fas fa-cogs mr-1"></i>
-                                        {{ __('Process') }}
+                                <div class="mt-auto pt-4 flex flex-wrap gap-2">
+                                    <a href="{{ route('books.show', $book->book_identify) }}" 
+                                       class="inline-flex items-center px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition duration-200">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        {{ __('View Book') }}
                                     </a>
-                                    <a href="{{ route('file-manager.show', $book->book_identify) }}" 
-                                       class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition duration-200">
-                                        <i class="fas fa-folder mr-1"></i>
-                                        {{ __('Files') }}
-                                    </a>
-                                @endauth
+                                    @auth
+                                        <a href="{{ route('ai-processor.show', $book->book_identify) }}" 
+                                           class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition duration-200">
+                                            <i class="fas fa-cogs mr-1"></i>
+                                            {{ __('Process') }}
+                                        </a>
+                                        <a href="{{ route('file-manager.show', $book->book_identify) }}" 
+                                           class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition duration-200">
+                                            <i class="fas fa-folder mr-1"></i>
+                                            {{ __('Files') }}
+                                        </a>
+                                    @endauth
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -266,11 +286,54 @@
         // Language switcher
         document.getElementById('language-switcher').addEventListener('change', function() {
             const language = this.value;
+            
+            // تحديث معلومات الكتاب حسب اللغة الجديدة
+            updateBookInfoForLanguage(language);
+            
+            // تحديث URL وإعادة تحميل الصفحة
             const currentUrl = window.location.href;
             const url = new URL(currentUrl);
             url.searchParams.set('lang', language);
             window.location.href = url.toString();
         });
+
+        // Update book information when language changes
+        function updateBookInfoForLanguage(language) {
+            const bookCards = document.querySelectorAll('[data-book-id]');
+            
+            bookCards.forEach(card => {
+                const bookId = card.getAttribute('data-book-id');
+                const titleElement = card.querySelector('.book-title');
+                const authorElement = card.querySelector('.book-author');
+                const languageElement = card.querySelector('.book-language');
+                
+                if (titleElement && authorElement && languageElement) {
+                    // إضافة loading state
+                    titleElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Loading...") }}';
+                    authorElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Loading...") }}';
+                    
+                    // تحديث معلومات الكتاب حسب اللغة الجديدة
+                    fetch(`/books/${bookId}/info/${language}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.bookInfo) {
+                                titleElement.textContent = data.bookInfo.title;
+                                authorElement.textContent = data.bookInfo.author;
+                                languageElement.textContent = data.bookInfo.language;
+                            } else {
+                                titleElement.textContent = '{{ __("No title available") }}';
+                                authorElement.textContent = '{{ __("No author available") }}';
+                                languageElement.textContent = language;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating book info:', error);
+                            titleElement.textContent = '{{ __("Error loading") }}';
+                            authorElement.textContent = '{{ __("Error loading") }}';
+                        });
+                }
+            });
+        }
     </script>
     </body>
 </html>

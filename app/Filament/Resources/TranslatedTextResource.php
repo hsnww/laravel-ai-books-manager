@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TranslatedTextResource\Pages;
 use App\Models\TranslatedText;
+use App\Helpers\LanguageHelper;
 use App\Traits\DeletesProcessedTextFiles;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -69,15 +70,15 @@ class TranslatedTextResource extends Resource
                     ->rows(20)
                     ->columnSpanFull(),
 
-                Forms\Components\TextInput::make('source_language')
+                Forms\Components\Select::make('source_language')
                     ->label('لغة المصدر')
-                    ->required()
-                    ->maxLength(50),
+                    ->options(LanguageHelper::getLanguageOptionsForForms())
+                    ->required(),
 
-                Forms\Components\TextInput::make('target_language')
+                Forms\Components\Select::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->required()
-                    ->maxLength(50),
+                    ->options(LanguageHelper::getLanguageOptionsForForms())
+                    ->required(),
 
                 Forms\Components\DateTimePicker::make('processing_date')
                     ->label('تاريخ المعالجة')
@@ -129,45 +130,11 @@ class TranslatedTextResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('source_language')
                     ->label('لغة المصدر')
-                    ->options([
-                        'Arabic' => 'العربية',
-                        'English' => 'الإنجليزية',
-                        'French' => 'الفرنسية',
-                        'Spanish' => 'الإسبانية',
-                        'German' => 'الألمانية',
-                        'Italian' => 'الإيطالية',
-                        'Portuguese' => 'البرتغالية',
-                        'Russian' => 'الروسية',
-                        'Chinese' => 'الصينية',
-                        'Japanese' => 'اليابانية',
-                        'Korean' => 'الكورية',
-                        'Turkish' => 'التركية',
-                        'Persian' => 'الفارسية',
-                        'Urdu' => 'الأردية',
-                        'Hindi' => 'الهندية',
-                        'Bengali' => 'البنغالية',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForForms()),
 
                 Tables\Filters\SelectFilter::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->options([
-                        'Arabic' => 'العربية',
-                        'English' => 'الإنجليزية',
-                        'French' => 'الفرنسية',
-                        'Spanish' => 'الإسبانية',
-                        'German' => 'الألمانية',
-                        'Italian' => 'الإيطالية',
-                        'Portuguese' => 'البرتغالية',
-                        'Russian' => 'الروسية',
-                        'Chinese' => 'الصينية',
-                        'Japanese' => 'اليابانية',
-                        'Korean' => 'الكورية',
-                        'Turkish' => 'التركية',
-                        'Persian' => 'الفارسية',
-                        'Urdu' => 'الأردية',
-                        'Hindi' => 'الهندية',
-                        'Bengali' => 'البنغالية',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForForms()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

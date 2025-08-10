@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ \App\Helpers\LanguageHelper::getTextDirection() }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -79,14 +79,19 @@
                     <!-- Language Switcher -->
                     <div class="relative">
                         <select id="language-switcher" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="ar" {{ app()->getLocale() == 'ar' ? 'selected' : '' }}>العربية</option>
-                            <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
+                            <option value="ar" {{ \App\Helpers\LanguageHelper::getCurrentLanguage() == 'ar' ? 'selected' : '' }}>العربية</option>
+                            <option value="en" {{ \App\Helpers\LanguageHelper::getCurrentLanguage() == 'en' ? 'selected' : '' }}>English</option>
                         </select>
                     </div>
                     
                     <!-- Navigation -->
                     @if (Route::has('login'))
                         <nav class="flex items-center space-x-4 rtl:space-x-reverse">
+                            <a href="{{ route('books.index') }}" 
+                               class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
+                                <i class="fas fa-books mr-2"></i>
+                                {{ __('Books') }}
+                            </a>
                             @auth
                                 <a href="{{ route('filament.admin.pages.dashboard') }}" 
                                    class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
@@ -139,45 +144,48 @@
                         {{ __('Book Information') }}
                     </h2>
                     
-                    @if($book->bookInfo)
+                    @php
+                        // الحصول على معلومات الكتاب حسب اللغة المحددة
+                        $currentBookInfo = $preferredBookInfo ?? $book->getBookInfoByLanguage($selectedLanguage);
+                    @endphp
+                    
+                    @if($currentBookInfo)
                         <div class="space-y-4">
                             <div class="flex items-center p-4 bg-gray-50 rounded-lg">
                                 <i class="fas fa-book-open text-blue-500 mr-3"></i>
                                 <div>
                                     <span class="font-semibold text-gray-700">{{ __('Title') }}:</span>
-                                    <span class="text-gray-900 ml-2">{{ $book->bookInfo->title }}</span>
+                                    <span class="text-gray-900 ml-2">{{ $currentBookInfo->title }}</span>
                                 </div>
                             </div>
                             <div class="flex items-center p-4 bg-gray-50 rounded-lg">
                                 <i class="fas fa-user text-green-500 mr-3"></i>
                                 <div>
                                     <span class="font-semibold text-gray-700">{{ __('Author') }}:</span>
-                                    <span class="text-gray-900 ml-2">{{ $book->bookInfo->author }}</span>
+                                    <span class="text-gray-900 ml-2">{{ $currentBookInfo->author }}</span>
                                 </div>
                             </div>
-                            <div class="flex items-center p-4 bg-gray-50 rounded-lg">
-                                <i class="fas fa-language text-purple-500 mr-3"></i>
-                                <div>
-                                    <span class="font-semibold text-gray-700">{{ __('Language') }}:</span>
-                                    <span class="text-gray-900 ml-2">{{ $book->bookInfo->language }}</span>
-                                </div>
-                            </div>
-                            @if($book->bookInfo->book_summary)
-                                <div class="p-4 bg-gray-50 rounded-lg">
-                                    <div class="flex items-start">
-                                        <i class="fas fa-file-alt text-orange-500 mr-3 mt-1"></i>
-                                        <div>
-                                            <span class="font-semibold text-gray-700">{{ __('Summary') }}:</span>
-                                            <p class="text-gray-900 mt-2">{{ Str::limit($book->bookInfo->book_summary, 300) }}</p>
-                                        </div>
+                            @if($currentBookInfo->book_summary)
+                                <div class="flex items-start p-4 bg-gray-50 rounded-lg">
+                                    <i class="fas fa-align-left text-purple-500 mr-3 mt-1"></i>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">{{ __('Summary') }}:</span>
+                                        <p class="text-gray-900 ml-2 mt-1">{{ $currentBookInfo->book_summary }}</p>
                                     </div>
                                 </div>
                             @endif
+                            <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                <i class="fas fa-globe text-orange-500 mr-3"></i>
+                                <div>
+                                    <span class="font-semibold text-gray-700">{{ __('Language') }}:</span>
+                                    <span class="text-gray-900 ml-2">{{ $currentBookInfo->language }}</span>
+                                </div>
+                            </div>
                         </div>
                     @else
                         <div class="text-center py-8">
-                            <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                            <p class="text-gray-600">{{ __('No book information available.') }}</p>
+                            <i class="fas fa-info-circle text-gray-400 text-4xl mb-4"></i>
+                            <p class="text-gray-500">{{ __('No book information available for the selected language.') }}</p>
                         </div>
                     @endif
                 </div>
@@ -250,7 +258,7 @@
                 {{ __('Processing Results') }}
                     </h3>
                     
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <!-- ملخص -->
                 <div class="processing-type-card bg-white border-2 border-gray-200 rounded-xl p-6 cursor-pointer hover:shadow-lg {{ $processingStats['summarized'] > 0 ? '' : 'opacity-50' }}"
                      onclick="showProcessingType('summarized')" 
@@ -323,6 +331,25 @@
                                 </div>
                         <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
                             {{ $processingStats['enhanced'] }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- مقالات المدونة -->
+                <div class="processing-type-card bg-white border-2 border-gray-200 rounded-xl p-6 cursor-pointer hover:shadow-lg {{ $processingStats['blog_articles'] > 0 ? '' : 'opacity-50' }}"
+                     onclick="showProcessingType('blog_articles')" 
+                     data-type="blog_articles" 
+                     data-language="{{ $selectedLanguage }}">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-newspaper text-red-600 text-2xl mr-3"></i>
+                            <div>
+                                <h4 class="font-bold text-gray-900">{{ __('Blog Articles') }}</h4>
+                                <p class="text-sm text-gray-600">{{ __('Blog Article') }}</p>
+                            </div>
+                        </div>
+                        <div class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">
+                            {{ $processingStats['blog_articles'] }}
                         </div>
                     </div>
                 </div>
@@ -399,6 +426,9 @@
             });
             event.target.classList.add('active');
             
+            // Update book information for new language
+            updateBookInfo(language);
+            
             // Update processing type cards with new language
             updateProcessingStats(language);
             
@@ -406,12 +436,166 @@
             resetTextDisplay();
         }
 
+        // Update book information for new language
+        function updateBookInfo(language) {
+            console.log('Updating book info for language:', language);
+            
+            // إضافة loading state
+            const bookInfoSection = document.querySelector('.lg\\:col-span-2');
+            if (bookInfoSection) {
+                const loadingHtml = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-gray-500">{{ __('Loading book information...') }}</p>
+                    </div>
+                `;
+                bookInfoSection.innerHTML = loadingHtml;
+            }
+            
+            // تحديث معلومات الكتاب حسب اللغة الجديدة مع encoding للغة
+            const url = `/books/{{ $book->book_identify }}/info/${encodeURIComponent(language)}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Book info response:', data);
+                    
+                    if (data.success && data.bookInfo) {
+                        const bookInfo = data.bookInfo;
+                        let fallbackNotice = '';
+                        
+                        // إضافة إشعار إذا تم استخدام fallback language
+                        if (bookInfo.fallback_used) {
+                            fallbackNotice = `
+                                <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                                        <span class="text-yellow-800 text-sm">
+                                            {{ __('Information not available in') }} "${bookInfo.original_language}". 
+                                            {{ __('Showing information in') }} "${bookInfo.language_display || bookInfo.language}" {{ __('instead.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        const bookInfoHtml = `
+                            <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                                <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                                {{ __('Book Information') }}
+                            </h2>
+                            
+                            ${fallbackNotice}
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                    <i class="fas fa-book-open text-blue-500 mr-3"></i>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">{{ __('Title') }}:</span>
+                                        <span class="text-gray-900 ml-2">${bookInfo.title || '{{ __("Not available") }}'}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                    <i class="fas fa-user text-green-500 mr-3"></i>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">{{ __('Author') }}:</span>
+                                        <span class="text-gray-900 ml-2">${bookInfo.author || '{{ __("Not available") }}'}</span>
+                                    </div>
+                                </div>
+                                ${bookInfo.book_summary ? `
+                                    <div class="flex items-start p-4 bg-gray-50 rounded-lg">
+                                        <i class="fas fa-align-left text-purple-500 mr-3 mt-1"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-700">{{ __('Summary') }}:</span>
+                                            <p class="text-gray-900 ml-2 mt-1">${bookInfo.book_summary}</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                    <i class="fas fa-globe text-orange-500 mr-3"></i>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">{{ __('Language') }}:</span>
+                                        <span class="text-gray-900 ml-2">${bookInfo.language_display || bookInfo.language}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        if (bookInfoSection) {
+                            bookInfoSection.innerHTML = bookInfoHtml;
+                        }
+                    } else {
+                        // عرض رسالة عدم توفر المعلومات مع تفاصيل إضافية
+                        let message = data.message || '{{ __("No book information available for the selected language.") }}';
+                        
+                        if (data.requested_language && data.normalized_language) {
+                            message += ` ({{ __('Requested') }}: ${data.requested_language}, {{ __('Normalized') }}: ${data.normalized_language})`;
+                        }
+                        
+                        const noInfoHtml = `
+                            <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                                <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                                {{ __('Book Information') }}
+                            </h2>
+                            
+                            <div class="text-center py-8">
+                                <i class="fas fa-info-circle text-gray-400 text-4xl mb-4"></i>
+                                <p class="text-gray-500">${message}</p>
+                                <div class="mt-4">
+                                    <button onclick="tryFallbackLanguage()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                        {{ __('Try Default Language') }}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        if (bookInfoSection) {
+                            bookInfoSection.innerHTML = noInfoHtml;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating book info:', error);
+                    
+                    // عرض رسالة خطأ مع خيار إعادة المحاولة
+                    const errorHtml = `
+                        <h2 class="text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                            <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                            {{ __('Book Information') }}
+                        </h2>
+                        
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-4"></i>
+                            <p class="text-red-500">{{ __('Error loading book information.') }}</p>
+                            <p class="text-gray-500 text-sm mt-2">${error.message}</p>
+                            <div class="mt-4">
+                                <button onclick="retryBookInfo()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+                                    {{ __('Retry') }}
+                                </button>
+                                <button onclick="tryFallbackLanguage()" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                                    {{ __('Try Default Language') }}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (bookInfoSection) {
+                        bookInfoSection.innerHTML = errorHtml;
+                    }
+                });
+        }
+
         // Update processing stats for new language
         function updateProcessingStats(language) {
             // إضافة loading state
             const processingCards = document.querySelectorAll('.processing-type-card');
             processingCards.forEach(card => {
-                const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100');
+                const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100, .bg-red-100');
                 if (countElement) {
                     countElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 }
@@ -430,7 +614,7 @@
                             const card = document.querySelector(`[data-type="${type}"]`);
                             if (card) {
                                 // Find the count element (badge)
-                                const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100');
+                                const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100, .bg-red-100');
                                 if (countElement) {
                                     countElement.textContent = stats[type];
                                     
@@ -456,7 +640,7 @@
                     console.error('Error updating stats:', error);
                     // إعادة تعيين القيم الأصلية في حالة الخطأ
                     processingCards.forEach(card => {
-                        const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100');
+                        const countElement = card.querySelector('.bg-purple-100, .bg-orange-100, .bg-green-100, .bg-blue-100, .bg-red-100');
                         if (countElement) {
                             countElement.textContent = '0';
                         }
@@ -470,7 +654,8 @@
                 'summarized': 'purple',
                 'formatting': 'orange',
                 'translated': 'green',
-                'enhanced': 'blue'
+                'enhanced': 'blue',
+                'blog_articles': 'red'
             };
             return colors[type] || 'gray';
         }
@@ -533,7 +718,8 @@
                 'summarized': '{{ __("Summary") }}',
                 'formatting': '{{ __("Bullet Points Summary") }}',
                 'translated': '{{ __("Translation") }}',
-                'enhanced': '{{ __("Enhanced Text") }}'
+                'enhanced': '{{ __("Enhanced Text") }}',
+                'blog_articles': '{{ __("Blog Articles") }}'
             };
             
             document.getElementById('content-title').textContent = typeNames[currentType];
@@ -653,6 +839,19 @@
         // Show login message
         function showLoginMessage() {
             alert('{{ __('Please login to access this feature.') }}');
+        }
+
+        // Function to retry loading book info
+        function retryBookInfo() {
+            if (currentLanguage) {
+                updateBookInfo(currentLanguage);
+            }
+        }
+
+        // Function to try fallback language
+        function tryFallbackLanguage() {
+            const fallbackLanguage = '{{ app()->getLocale() === "ar" ? "العربية" : "English" }}';
+            updateBookInfo(fallbackLanguage);
         }
 
         // Initialize page

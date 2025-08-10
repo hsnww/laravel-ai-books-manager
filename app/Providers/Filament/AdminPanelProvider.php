@@ -63,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('images/favicon.png'))
             ->navigationGroups([
                 __('File Management'),
+                __('Content Management'),
                 __('Processed Texts Management'),
                 __('Data Management'),
                 __('System Management'),

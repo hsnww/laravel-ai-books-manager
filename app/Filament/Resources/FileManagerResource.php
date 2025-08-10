@@ -84,6 +84,9 @@ class FileManagerResource extends Resource
                 Forms\Components\TextInput::make('folder')
                     ->label(__('Folder'))
                     ->maxLength(255),
+                Forms\Components\TextInput::make('book_folder')
+                    ->label(__('Book Folder'))
+                    ->maxLength(255),
                 Forms\Components\DateTimePicker::make('modified_at')
                     ->label(__('Last Modified')),
             ]);

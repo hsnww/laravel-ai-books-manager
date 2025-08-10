@@ -12,6 +12,7 @@ use App\Models\SummarizedText;
 use App\Models\FormattingImprovedText;
 use App\Models\BookInfo;
 use App\Models\Book;
+use App\Helpers\LanguageHelper;
 
 class AiProcessorService
 {
@@ -371,6 +372,84 @@ class AiProcessorService
                     $this->saveProcessedTextFile($processedText, $bookId, $originalFile, 'extract_info', $targetLanguage);
                     Log::info('Book info text file saved');
                     break;
+                    
+                case 'blog_article':
+                    Log::info('Creating BlogArticle record');
+                    
+                    try {
+                        // Calculate word count
+                        $wordCount = str_word_count(strip_tags($cleanedText));
+                        
+                        // Extract SEO keywords from the article (enhanced extraction)
+                        $seoKeywords = $this->extractSeoKeywords($cleanedText);
+                        
+                        // Extract title from the processed text (before cleaning)
+                        $extractedTitle = $this->extractTitleFromProcessedText($processedText);
+                        
+                        // Use extracted title if it's not empty and not default
+                        if (!empty($extractedTitle) && $extractedTitle !== 'نص معالج') {
+                            $title = $extractedTitle;
+                        }
+                        
+                        // If still empty, try to extract from first line of cleaned text
+                        if (empty($title) || $title === 'نص معالج') {
+                            $lines = explode("\n", $cleanedText);
+                            foreach ($lines as $line) {
+                                $line = trim($line);
+                                if (!empty($line) && strlen($line) < 150) {
+                                    $title = $line;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Final fallback
+                        if (empty($title) || $title === 'نص معالج') {
+                            $title = 'مقال مدونة';
+                        }
+                        
+                        Log::info('Title extraction result', [
+                            'extracted_title' => $extractedTitle,
+                            'final_title' => $title
+                        ]);
+                        
+                        // Create BlogArticle record
+                        $blogArticle = \App\Models\BlogArticle::create([
+                            'book_id' => $bookId,
+                            'original_file' => $originalFile,
+                            'title' => $title,
+                            'article_content' => $cleanedText,
+                            'target_language' => $targetLanguage,
+                            'article_type' => 'blog',
+                            'word_count' => $wordCount,
+                            'seo_keywords' => $seoKeywords,
+                            'status' => 'draft',
+                            'processing_date' => now(),
+                        ]);
+                        
+                        Log::info('BlogArticle created successfully', [
+                            'blog_article_id' => $blogArticle->id,
+                            'title' => $title,
+                            'word_count' => $wordCount,
+                            'seo_keywords_count' => count(explode(',', $seoKeywords))
+                        ]);
+                        
+                        // Also save as text file for backup
+                        $this->saveProcessedTextFile($cleanedText, $bookId, $originalFile, 'blog_article', $targetLanguage);
+                        Log::info('Blog article text file saved');
+                        
+                    } catch (\Exception $e) {
+                        Log::error('Error creating BlogArticle: ' . $e->getMessage(), [
+                            'book_id' => $bookId,
+                            'original_file' => $originalFile,
+                            'error' => $e->getMessage()
+                        ]);
+                        
+                        // Still save as text file even if database save fails
+                        $this->saveProcessedTextFile($cleanedText, $bookId, $originalFile, 'blog_article', $targetLanguage);
+                        Log::info('Blog article text file saved as backup');
+                    }
+                    break;
             }
         }
         
@@ -402,6 +481,24 @@ class AiProcessorService
             }
         }
         
+        // البحث عن العنوان في المقالات (السطر الأول الذي لا يحتوي على كلمات مفتاحية)
+        $firstNonEmptyLine = null;
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line)) {
+                $firstNonEmptyLine = $line;
+                break;
+            }
+        }
+        
+        if ($firstNonEmptyLine) {
+            // إذا كان السطر الأول قصيراً ولا يحتوي على كلمات مفتاحية، فهو العنوان
+            if (strlen($firstNonEmptyLine) < 150 && 
+                !preg_match('/^(مقدمة|introduction|عنوان|title|الكتاب|book|المؤلف|author|سنة|year|الناشر|publisher|عدد|pages|التصنيف|category|الملخص|summary|النص|text|الفصل|chapter|\*\*|#|##|###)/i', $firstNonEmptyLine)) {
+                return $firstNonEmptyLine;
+            }
+        }
+        
         // إذا لم يتم العثور على عنوان، استخدم اسم الملف الأصلي
         return 'نص معالج';
     }
@@ -429,6 +526,11 @@ class AiProcessorService
                 if (preg_match('/^(الملخص|Summary|النص|Text):\s*(.+)$/i', $trimmedLine, $matches)) {
                     $cleanedLines[] = trim($matches[2]);
                 }
+                continue;
+            }
+            
+            // تنظيف المقالات من العناوين المكررة في البداية
+            if (preg_match('/^(مقدمة|introduction|عنوان|title|الكتاب|book|المؤلف|author|سنة|year|الناشر|publisher|عدد|pages|التصنيف|category|الملخص|summary|النص|text|الفصل|chapter|\*\*|#|##|###)/i', $trimmedLine)) {
                 continue;
             }
             
@@ -468,7 +570,7 @@ class AiProcessorService
             // Replace placeholders in the prompt
             $extractionPrompt = str_replace(
                 ['{language}', '{text}'],
-                [$language, substr($processedText, 0, 500)],
+                [$language, substr($processedText, 0, 2000)], // زيادة عدد الأحرف من 500 إلى 2000
                 $prompt->prompt_text
             );
             
@@ -478,19 +580,22 @@ class AiProcessorService
         } else {
             // Fallback prompt if not found in database
             $extractionPrompt = "أنت متخصص في استخراج معلومات الكتب. مهمتك إنشاء معلومات الكتاب من النص التالي:\n\n";
-            $extractionPrompt .= "**المعلومات المطلوبة:**\n";
+            $extractionPrompt .= "المعلومات المطلوبة:\n";
             $extractionPrompt .= "- عنوان الكتاب\n";
             $extractionPrompt .= "- اسم المؤلف\n";
-            $extractionPrompt .= "- ملخص مختصر\n\n";
-            $extractionPrompt .= "**تعليمات الاستخراج:**\n";
-            $extractionPrompt .= "- أنشئ معلومات الكتاب باللغة " . $language . "\n";
-            $extractionPrompt .= "- إذا لم تجد معلومة، اكتب \"غير محدد\"\n";
-            $extractionPrompt .= "- اكتب المعلومات مباشرة باللغة المطلوبة\n\n";
-            $extractionPrompt .= "**النص المراد استخراج المعلومات منه:**\n" . substr($processedText, 0, 500) . "\n\n";
-            $extractionPrompt .= "**التنسيق المطلوب:**\n";
+            $extractionPrompt .= "- ملخص مختصر في حدود 200 كلمة\n\n";
+            $extractionPrompt .= "تعليمات الاستخراج:\n";
+            $extractionPrompt .= "- أنشئ جميع معلومات الكتاب باللغة " . $language . " بما في ذلك عنوان الكتاب واسم المؤلف\n";
+            $extractionPrompt .= "- إذا لم تجد معلومة، اكتب \"غير محدد\" أو ما يقابلها باللغة المحددة\n";
+            $extractionPrompt .= "- اكتب المعلومات مباشرة باللغة المطلوبة\n";
+            $extractionPrompt .= "- اكتب ملخصاً مكتملاً ومفيداً دون انقطاع أو عبارات مثل \"بقية الملخص غير متوفرة\" أو \"يمكن استنتاج\"\n";
+            $extractionPrompt .= "- تأكد من أن الملخص ينتهي بجملة مكتملة ومنطقية\n";
+            $extractionPrompt .= "- لا تستخدم علامات الحذف (...) في نهاية الملخص\n\n";
+            $extractionPrompt .= "النص المراد استخراج المعلومات منه:\n" . substr($processedText, 0, 2000) . "\n\n";
+            $extractionPrompt .= "التنسيق المطلوب:\n";
             $extractionPrompt .= "العنوان: [عنوان الكتاب]\n";
             $extractionPrompt .= "المؤلف: [اسم المؤلف]\n";
-            $extractionPrompt .= "الملخص: [ملخص مختصر]\n";
+            $extractionPrompt .= "الملخص: [ملخص مختصر ومكتمل]\n";
             
             Log::info('Using fallback prompt', [
                 'prompt_length' => strlen($extractionPrompt)
@@ -519,23 +624,27 @@ class AiProcessorService
                     $line = trim($line);
                     if (empty($line)) continue;
                     
-                    // Extract title - support multiple languages
+                    // Extract title - support multiple languages and formats
                     if (strpos($line, 'العنوان:') !== false || strpos($line, 'Title:') !== false) {
                         $title = trim(str_replace(['العنوان:', 'Title:'], '', $line));
+                        // Remove brackets if present
+                        $title = trim($title, '[]');
                         Log::info('Extracted title', ['title' => $title]);
                     }
-                    // Extract author - support multiple languages
+                    // Extract author - support multiple languages and formats
                     elseif (strpos($line, 'المؤلف:') !== false || strpos($line, 'Author:') !== false) {
                         $author = trim(str_replace(['المؤلف:', 'Author:'], '', $line));
+                        // Remove brackets if present
+                        $author = trim($author, '[]');
                         Log::info('Extracted author', ['author' => $author]);
                     }
-                    // Extract summary - support multiple languages
+                    // Extract summary - support multiple languages and formats
                     elseif (strpos($line, 'الملخص:') !== false || strpos($line, 'Summary:') !== false) {
                         $summary = trim(str_replace(['الملخص:', 'Summary:'], '', $line));
+                        // Remove brackets if present
+                        $summary = trim($summary, '[]');
                         Log::info('Extracted summary', ['summary_length' => strlen($summary)]);
                     }
-                    
-
                 }
                 
                 // If AI extraction failed, try manual extraction
@@ -560,7 +669,16 @@ class AiProcessorService
         // Clean and truncate fields to fit database constraints
         $title = !empty($title) ? $this->cleanText(substr($title, 0, 1000)) : '';
         $author = !empty($author) ? $this->cleanText(substr($author, 0, 1000)) : '';
-        $summary = !empty($summary) ? $this->cleanText(substr($summary, 0, 65535)) : '';
+        $summary = !empty($summary) ? $this->cleanText($summary) : ''; // إزالة قطع النص - تنظيف النص فقط دون قطعه
+        
+        // تنظيف الملخص من عبارات الانقطاع
+        if (!empty($summary)) {
+            $summary = preg_replace('/\.{3,}$/', '', $summary);
+            $summary = preg_replace('/\s*\(بقية الملخص غير متوفرة.*?\)/', '', $summary);
+            $summary = preg_replace('/\s*\(.*?يمكن استنتاج.*?\)/', '', $summary);
+            $summary = preg_replace('/\s*\(.*?غير متوفرة.*?\)/', '', $summary);
+            $summary = trim($summary);
+        }
         
         Log::info('Final extracted data', [
             'title' => $title,
@@ -683,9 +801,32 @@ class AiProcessorService
             }
         }
         
-        // Generate summary if not found
+        // Generate summary if not found - تحسين طريقة إنشاء الملخص
         if (empty($summary) && !empty($text)) {
-            $summary = "ملخص مختصر للكتاب: " . substr($text, 0, 200) . "...";
+            // أخذ أول 500 حرف كملخص
+            $summaryText = substr($text, 0, 500);
+            
+            // البحث عن نهاية جملة مناسبة
+            $lastPeriod = strrpos($summaryText, '.');
+            $lastQuestion = strrpos($summaryText, '؟');
+            $lastExclamation = strrpos($summaryText, '!');
+            
+            $endPositions = array_filter([$lastPeriod, $lastQuestion, $lastExclamation]);
+            
+            if (!empty($endPositions)) {
+                $endPos = max($endPositions);
+                $summaryText = substr($summaryText, 0, $endPos + 1);
+            }
+            
+            // إزالة أي نص مقطوع أو غير مكتمل
+            $summaryText = trim($summaryText);
+            
+            // إذا كان النص ينتهي بـ "..." أو يحتوي على كلمات تشير للانقطاع، إزالتها
+            $summaryText = preg_replace('/\.{3,}$/', '', $summaryText);
+            $summaryText = preg_replace('/\s*\(بقية الملخص غير متوفرة.*?\)/', '', $summaryText);
+            $summaryText = preg_replace('/\s*\(.*?يمكن استنتاج.*?\)/', '', $summaryText);
+            
+            $summary = $summaryText;
         }
     }
     
@@ -743,7 +884,8 @@ class AiProcessorService
             'summarize' => __('Text Summarization'),
             'translate' => __('Text Translation'),
             'enhance' => __('Text Enhancement'),
-            'improve_format' => __('Bullet Points Summary')
+            'improve_format' => __('Bullet Points Summary'),
+            'blog_article' => __('Professional Blog Article')
         ];
     }
     
@@ -893,8 +1035,8 @@ class AiProcessorService
         // Remove only the most problematic control characters
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
         
-        // Remove any truncated characters at the end
-        $text = preg_replace('/\?+$/', '', $text);
+        // Remove any truncated characters at the end - تحسين لتجنب قطع النص المفيد
+        $text = preg_replace('/\?{3,}$/', '', $text); // إزالة علامات استفهام متكررة فقط
         
         // Ensure proper UTF-8 encoding without being too aggressive
         if (!mb_check_encoding($text, 'UTF-8')) {
@@ -930,7 +1072,7 @@ class AiProcessorService
                     'book_id' => $bookId,
                     'title' => $title,
                     'author' => 'غير محدد',
-                    'book_summary' => substr($processedText, 0, 500), // أول 500 حرف من النص المعالج
+                    'book_summary' => $processedText, // استخدام النص الكامل بدلاً من قطعه
                     'language' => $targetLanguage,
                 ]);
                 
@@ -975,27 +1117,79 @@ class AiProcessorService
     }
     
     /**
+     * Extract SEO keywords from article content
+     */
+    private function extractSeoKeywords(string $content): string
+    {
+        // Clean content and extract words
+        $cleanContent = strip_tags($content);
+        $words = str_word_count(strtolower($cleanContent), 1);
+        $wordCount = array_count_values($words);
+        
+        // Remove common words in multiple languages
+        $commonWords = [
+            // English common words
+            'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'a', 'an', 'as', 'so', 'if', 'then', 'else', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'than', 'too', 'very', 'you', 'your', 'yours', 'yourself', 'yourselves', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'what', 'which', 'who', 'whom', 'whose', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'would', 'should', 'could', 'ought', 'im', 'youre', 'hes', 'shes', 'its', 'were', 'theyre', 'ive', 'youve', 'weve', 'theyve', 'id', 'youd', 'hed', 'shed', 'wed', 'theyd', 'ill', 'youll', 'hell', 'shell', 'well', 'theyll', 'isnt', 'arent', 'wasnt', 'werent', 'hasnt', 'havent', 'hadnt', 'doesnt', 'dont', 'didnt', 'wont', 'wouldnt', 'couldnt', 'shouldnt', 'let', 'lets', 'thats', 'whos', 'whats', 'heres', 'theres', 'whens', 'wheres', 'whys', 'hows',
+            
+            // Arabic common words
+            'في', 'من', 'إلى', 'على', 'هذا', 'هذه', 'ذلك', 'تلك', 'التي', 'الذي', 'الذين', 'اللاتي', 'اللائي', 'هو', 'هي', 'هم', 'هن', 'أنا', 'نحن', 'أنت', 'أنتما', 'أنتم', 'أنتن', 'هو', 'هي', 'هما', 'هم', 'هن', 'كان', 'كانت', 'كانوا', 'كن', 'يكون', 'تكون', 'يكونون', 'تكونون', 'أكون', 'نكون', 'يكون', 'تكون', 'يكونون', 'تكونون', 'أكون', 'نكون', 'له', 'لها', 'لهما', 'لهم', 'لهن', 'لي', 'لنا', 'لك', 'لكما', 'لكم', 'لكن', 'له', 'لها', 'لهما', 'لهم', 'لهن', 'لي', 'لنا', 'لك', 'لكما', 'لكم', 'لكن',
+            
+            // French common words
+            'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'mais', 'dans', 'sur', 'avec', 'sans', 'pour', 'par', 'contre', 'chez', 'chez', 'sous', 'entre', 'devant', 'derrière', 'avant', 'après', 'pendant', 'depuis', 'jusqu', 'vers', 'vers', 'selon', 'selon', 'd', 'après', 'avant', 'pendant', 'depuis', 'jusqu', 'vers', 'selon', 'd', 'après', 'avant', 'pendant', 'depuis', 'jusqu', 'vers', 'selon',
+            
+            // Spanish common words
+            'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'pero', 'en', 'sobre', 'con', 'sin', 'para', 'por', 'contra', 'entre', 'después', 'antes', 'durante', 'desde', 'hasta', 'hacia', 'según', 'según', 'de', 'del', 'al', 'a', 'ante', 'bajo', 'cabe', 'con', 'contra', 'de', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin', 'so', 'sobre', 'tras',
+            
+            // German common words
+            'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'eines', 'einer', 'einem', 'einen', 'und', 'oder', 'aber', 'in', 'auf', 'mit', 'ohne', 'für', 'gegen', 'zwischen', 'vor', 'nach', 'während', 'seit', 'bis', 'zu', 'nach', 'von', 'aus', 'bei', 'seit', 'trotz', 'wegen', 'dank', 'an', 'auf', 'hinter', 'in', 'neben', 'über', 'unter', 'vor', 'zwischen',
+            
+            // Single letters and numbers
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+        ];
+        
+        // Remove common words
+        foreach ($commonWords as $word) {
+            unset($wordCount[$word]);
+        }
+        
+        // Filter out words that are too short (less than 3 characters)
+        $filteredWords = [];
+        foreach ($wordCount as $word => $count) {
+            if (strlen($word) >= 3 && $count >= 2) { // Only words that appear at least twice
+                $filteredWords[$word] = $count;
+            }
+        }
+        
+        // Sort by frequency and get top 15 keywords
+        arsort($filteredWords);
+        $keywords = array_slice(array_keys($filteredWords), 0, 15);
+        
+        // If we don't have enough keywords, add some from the original list
+        if (count($keywords) < 5) {
+            $additionalKeywords = array_slice(array_keys($wordCount), 0, 10);
+            $keywords = array_merge($keywords, $additionalKeywords);
+            $keywords = array_unique($keywords);
+        }
+        
+        return implode(', ', $keywords);
+    }
+
+    /**
      * Get available languages
      */
     public function getAvailableLanguages()
     {
-        return [
-            'English' => 'الإنجليزية',
-            'Arabic' => 'العربية',
-            'French' => 'الفرنسية',
-            'Spanish' => 'الإسبانية',
-            'German' => 'الألمانية',
-            'Italian' => 'الإيطالية',
-            'Portuguese' => 'البرتغالية',
-            'Russian' => 'الروسية',
-            'Chinese' => 'الصينية',
-            'Japanese' => 'اليابانية',
-            'Korean' => 'الكورية',
-            'Turkish' => 'التركية',
-            'Persian' => 'الفارسية',
-            'Urdu' => 'الأردية',
-            'Hindi' => 'الهندية',
-            'Bengali' => 'البنغالية'
+        $languages = [
+            'English', 'Arabic', 'French', 'Spanish', 'German', 'Italian',
+            'Portuguese', 'Russian', 'Chinese', 'Japanese', 'Korean', 'Turkish',
+            'Persian', 'Urdu', 'Hindi', 'Bengali'
         ];
+        
+        $result = [];
+        foreach ($languages as $language) {
+            $result[$language] = LanguageHelper::arabizeLanguageName($language);
+        }
+        
+        return $result;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BookResource\Pages;
 use App\Filament\Resources\BookResource\RelationManagers;
 use App\Models\Book;
+use App\Helpers\LanguageHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -61,22 +62,7 @@ class BookResource extends Resource
                 
                 Forms\Components\Select::make('book_language')
                     ->label('لغة الكتاب')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                        'french' => 'Français',
-                        'german' => 'Deutsch',
-                        'spanish' => 'Español',
-                        'italian' => 'Italiano',
-                        'portuguese' => 'Português',
-                        'russian' => 'Русский',
-                        'chinese' => '中文',
-                        'japanese' => '日本語',
-                        'korean' => '한국어',
-                        'turkish' => 'Türkçe',
-                        'hindi' => 'हिन्दी',
-                        'urdu' => 'اردو',
-                    ])
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish())
                     ->required(),
             ]);
     }
@@ -117,22 +103,7 @@ class BookResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('book_language')
                     ->label('لغة الكتاب')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                        'french' => 'Français',
-                        'german' => 'Deutsch',
-                        'spanish' => 'Español',
-                        'italian' => 'Italiano',
-                        'portuguese' => 'Português',
-                        'russian' => 'Русский',
-                        'chinese' => '中文',
-                        'japanese' => '日本語',
-                        'korean' => '한국어',
-                        'turkish' => 'Türkçe',
-                        'hindi' => 'हिन्दी',
-                        'urdu' => 'اردو',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForFormsEnglish()),
                 
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('المستخدم')

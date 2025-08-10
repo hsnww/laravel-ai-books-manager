@@ -6,6 +6,7 @@ use App\Filament\Resources\SummarizedTextResource\Pages;
 use App\Filament\Resources\SummarizedTextResource\RelationManagers;
 use App\Models\SummarizedText;
 use App\Traits\DeletesProcessedTextFiles;
+use App\Helpers\LanguageHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -73,22 +74,7 @@ class SummarizedTextResource extends Resource
                 
                 Forms\Components\Select::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                        'french' => 'Français',
-                        'german' => 'Deutsch',
-                        'spanish' => 'Español',
-                        'italian' => 'Italiano',
-                        'portuguese' => 'Português',
-                        'russian' => 'Русский',
-                        'chinese' => '中文',
-                        'japanese' => '日本語',
-                        'korean' => '한국어',
-                        'turkish' => 'Türkçe',
-                        'hindi' => 'हिन्दी',
-                        'urdu' => 'اردو',
-                    ])
+                    ->options(LanguageHelper::getLanguageOptionsForForms())
                     ->required(),
                 
                 Forms\Components\TextInput::make('summary_length')
@@ -153,22 +139,7 @@ class SummarizedTextResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('target_language')
                     ->label('اللغة المستهدفة')
-                    ->options([
-                        'arabic' => 'العربية',
-                        'english' => 'English',
-                        'french' => 'Français',
-                        'german' => 'Deutsch',
-                        'spanish' => 'Español',
-                        'italian' => 'Italiano',
-                        'portuguese' => 'Português',
-                        'russian' => 'Русский',
-                        'chinese' => '中文',
-                        'japanese' => '日本語',
-                        'korean' => '한국어',
-                        'turkish' => 'Türkçe',
-                        'hindi' => 'हिन्दी',
-                        'urdu' => 'اردو',
-                    ]),
+                    ->options(LanguageHelper::getLanguageOptionsForForms()),
                 
                 Tables\Filters\SelectFilter::make('book_id')
                     ->label('الكتاب')

@@ -8,11 +8,20 @@ use App\Models\EnhancedText;
 use App\Models\TranslatedText;
 use App\Models\SummarizedText;
 use App\Models\FormattingImprovedText;
+use App\Models\BlogArticle;
+use App\Services\BookInfoService;
+use App\Helpers\LanguageHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
 
 class BookController extends Controller
 {
+    protected $bookInfoService;
+
+    public function __construct(BookInfoService $bookInfoService)
+    {
+        $this->bookInfoService = $bookInfoService;
+    }
+
     /**
      * Show book details page
      */
@@ -20,18 +29,24 @@ class BookController extends Controller
     {
         // Set language based on request or browser
         $locale = $request->get('lang', $request->getLocale());
-        if (in_array($locale, ['ar', 'en'])) {
-            App::setLocale($locale);
+        if (LanguageHelper::isValidLanguage($locale)) {
+            LanguageHelper::setLanguage($locale);
         }
 
         // Get book with all related data
-        $book = Book::with(['bookInfo', 'user'])->where('book_identify', $bookIdentify)->firstOrFail();
+        $book = Book::with(['bookInfos', 'user'])->where('book_identify', $bookIdentify)->firstOrFail();
 
         // Get available languages for this book
         $availableLanguages = $this->getAvailableLanguages($book->id);
 
         // Get selected language from request or use first available language
         $selectedLanguage = $request->get('language', $availableLanguages->first() ?? 'Arabic');
+        
+        // Normalize language values to match what's stored in database
+        $selectedLanguage = LanguageHelper::normalizeLanguageName($selectedLanguage);
+
+        // Get preferred book info using BookInfoService
+        $preferredBookInfo = $this->bookInfoService->getBookWithPreferredInfo($book, $selectedLanguage);
 
         // Get processing statistics for selected language
         $processingStats = $this->getProcessingStats($book->id, $selectedLanguage);
@@ -41,17 +56,7 @@ class BookController extends Controller
 
         // Helper function to check if language is RTL
         $isRtlLanguage = function($language) {
-            $rtlLanguages = [
-                'arabic', 'ar', 'عربي', 'العربية', 'arabic', 'arabic',
-                'hebrew', 'he', 'עברית',
-                'persian', 'fa', 'فارسی',
-                'urdu', 'ur', 'اردو',
-                'sindhi', 'sd', 'سنڌي',
-                'kashmiri', 'ks', 'کٲشُر',
-                'pashto', 'ps', 'پښتو',
-                'dari', 'prs', 'دری'
-            ];
-            return in_array(strtolower(trim($language)), $rtlLanguages);
+            return LanguageHelper::isRtlLanguage($language);
         };
 
         // Helper function to detect Arabic text content
@@ -65,6 +70,7 @@ class BookController extends Controller
             'firstTexts',
             'selectedLanguage',
             'availableLanguages',
+            'preferredBookInfo',
             'isRtlLanguage',
             'detectArabicText'
         ));
@@ -86,6 +92,9 @@ class BookController extends Controller
                 ->where('target_language', $language)
                 ->count(),
             'enhanced' => EnhancedText::where('book_id', $bookId)
+                ->where('target_language', $language)
+                ->count(),
+            'blog_articles' => BlogArticle::where('book_id', $bookId)
                 ->where('target_language', $language)
                 ->count(),
         ];
@@ -113,6 +122,10 @@ class BookController extends Controller
                 ->where('target_language', $language)
                 ->orderBy('created_at', 'asc')
                 ->first(),
+            'blog_articles' => BlogArticle::where('book_id', $bookId)
+                ->where('target_language', $language)
+                ->orderBy('created_at', 'asc')
+                ->first(),
         ];
     }
 
@@ -128,11 +141,13 @@ class BookController extends Controller
         $formattingLanguages = FormattingImprovedText::where('book_id', $bookId)->pluck('target_language')->unique();
         $translatedLanguages = TranslatedText::where('book_id', $bookId)->pluck('target_language')->unique();
         $enhancedLanguages = EnhancedText::where('book_id', $bookId)->pluck('target_language')->unique();
+        $blogArticleLanguages = BlogArticle::where('book_id', $bookId)->pluck('target_language')->unique();
 
         $languages = $languages->merge($summarizedLanguages)
             ->merge($formattingLanguages)
             ->merge($translatedLanguages)
             ->merge($enhancedLanguages)
+            ->merge($blogArticleLanguages)
             ->unique()
             ->values();
 
@@ -146,11 +161,18 @@ class BookController extends Controller
     {
         try {
             $book = Book::where('book_identify', $bookIdentify)->firstOrFail();
+            
+            // Normalize language values to match what's stored in database
+            $language = LanguageHelper::normalizeLanguageName($language);
+            
             $stats = $this->getProcessingStats($book->id, $language);
 
             return response()->json([
                 'success' => true,
-                'stats' => $stats
+                'stats' => $stats,
+                'language' => $language,
+                'language_display' => LanguageHelper::getLocalizedLanguageName($language),
+                'is_rtl' => LanguageHelper::isRtlLanguage($language)
             ]);
         } catch (\Exception $e) {
             \Log::error('Error getting processing stats: ' . $e->getMessage());
@@ -165,6 +187,9 @@ class BookController extends Controller
     {
         try {
             $book = Book::where('book_identify', $bookIdentify)->firstOrFail();
+            
+            // Normalize language values to match what's stored in database
+            $language = LanguageHelper::normalizeLanguageName($language);
 
             $texts = collect();
             switch ($type) {
@@ -192,6 +217,12 @@ class BookController extends Controller
                         ->orderBy('created_at', 'asc')
                         ->get();
                     break;
+                case 'blog_articles':
+                    $texts = BlogArticle::where('book_id', $book->id)
+                        ->where('target_language', $language)
+                        ->orderBy('created_at', 'asc')
+                        ->get();
+                    break;
                 default:
                     return response()->json(['error' => 'Invalid type'], 400);
             }
@@ -211,12 +242,18 @@ class BookController extends Controller
                     case 'enhanced':
                         $content = $text->enhanced_text;
                         break;
+                    case 'blog_articles':
+                        $content = $text->article_content;
+                        break;
                 }
 
                 return [
                     'id' => $text->id,
                     'title' => $text->title,
                     'content' => $content,
+                    'language' => $text->target_language,
+                    'language_display' => LanguageHelper::getLocalizedLanguageName($text->target_language),
+                    'is_rtl' => LanguageHelper::isRtlLanguage($text->target_language),
                     'created_at' => $text->created_at->format('Y-m-d H:i:s'),
                     'total_count' => $texts->count()
                 ];
@@ -225,7 +262,10 @@ class BookController extends Controller
             return response()->json([
                 'success' => true,
                 'texts' => $formattedTexts,
-                'total_count' => $texts->count()
+                'total_count' => $texts->count(),
+                'language' => $language,
+                'language_display' => LanguageHelper::getLocalizedLanguageName($language),
+                'is_rtl' => LanguageHelper::isRtlLanguage($language)
             ]);
         } catch (\Exception $e) {
             \Log::error('Error in getTextsByType: ' . $e->getMessage());
@@ -255,6 +295,9 @@ class BookController extends Controller
                 case 'formatting':
                     $text = FormattingImprovedText::where('id', $textId)->where('book_id', $book->id)->first();
                     break;
+                case 'blog_articles':
+                    $text = BlogArticle::where('id', $textId)->where('book_id', $book->id)->first();
+                    break;
                 default:
                     return response()->json(['error' => 'Invalid type'], 400);
             }
@@ -277,6 +320,9 @@ class BookController extends Controller
                 case 'formatting':
                     $textContent = $text->improved_text;
                     break;
+                case 'blog_articles':
+                    $textContent = $text->article_content;
+                    break;
                 default:
                     $textContent = $text->processed_text;
                     break;
@@ -287,11 +333,90 @@ class BookController extends Controller
                 'text' => $textContent,
                 'title' => $text->title,
                 'language' => $text->target_language,
+                'language_display' => LanguageHelper::getLocalizedLanguageName($text->target_language),
                 'type' => $type,
-                'created_at' => $text->created_at->format('Y-m-d H:i:s')
+                'created_at' => $text->created_at->format('Y-m-d H:i:s'),
+                'is_rtl' => LanguageHelper::isRtlLanguage($text->target_language)
             ]);
         } catch (\Exception $e) {
             \Log::error('Error in getProcessedText: ' . $e->getMessage());
+            return response()->json(['error' => 'Server error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get book information by language
+     */
+    public function getBookInfoByLanguage(Request $request, $bookIdentify, $language)
+    {
+        try {
+            \Log::info("BookController: Requesting book info for book '{$bookIdentify}' with language '{$language}'");
+            
+            $book = Book::where('book_identify', $bookIdentify)->firstOrFail();
+            
+            // Normalize language values to match what's stored in database with fallback
+            $originalLanguage = $language;
+            $language = LanguageHelper::normalizeLanguageNameWithFallback($language, 'English');
+            
+            if ($originalLanguage !== $language) {
+                \Log::info("BookController: Language normalized from '{$originalLanguage}' to '{$language}'");
+            }
+
+            // Get book info for the specified language
+            $bookInfo = $this->bookInfoService->getBookInfoByLanguage($book, $language);
+
+            if ($bookInfo) {
+                \Log::info("BookController: Found book info for language '{$language}'");
+                return response()->json([
+                    'success' => true,
+                    'bookInfo' => [
+                        'title' => $bookInfo->title,
+                        'author' => $bookInfo->author,
+                        'book_summary' => $bookInfo->book_summary,
+                        'language' => $bookInfo->language,
+                        'language_display' => LanguageHelper::getLocalizedLanguageName($bookInfo->language),
+                        'is_rtl' => LanguageHelper::isRtlLanguage($bookInfo->language)
+                    ]
+                ]);
+            } else {
+                \Log::warning("BookController: No book info found for language '{$language}', trying fallback");
+                
+                // Try to get book info with fallback language
+                $fallbackLanguage = 'English';
+                $fallbackBookInfo = $this->bookInfoService->getBookInfoByLanguage($book, $fallbackLanguage);
+                
+                if ($fallbackBookInfo) {
+                    \Log::info("BookController: Using fallback language '{$fallbackLanguage}'");
+                    return response()->json([
+                        'success' => true,
+                        'bookInfo' => [
+                            'title' => $fallbackBookInfo->title,
+                            'author' => $fallbackBookInfo->author,
+                            'book_summary' => $fallbackBookInfo->book_summary,
+                            'language' => $fallbackBookInfo->language,
+                            'language_display' => LanguageHelper::getLocalizedLanguageName($fallbackBookInfo->language),
+                            'is_rtl' => LanguageHelper::isRtlLanguage($fallbackBookInfo->language),
+                            'fallback_used' => true,
+                            'original_language' => $originalLanguage
+                        ]
+                    ]);
+                } else {
+                    \Log::warning("BookController: No book info found even with fallback language");
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No book information available for the specified language or fallback language',
+                        'requested_language' => $originalLanguage,
+                        'normalized_language' => $language,
+                        'fallback_language' => $fallbackLanguage
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error getting book info by language: ' . $e->getMessage(), [
+                'book_identify' => $bookIdentify,
+                'language' => $language ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => 'Server error: ' . $e->getMessage()], 500);
         }
     }

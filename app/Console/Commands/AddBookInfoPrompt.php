@@ -17,94 +17,78 @@ class AddBookInfoPrompt extends Command
         // Arabic prompt
         $arabicPrompt = AiPrompt::updateOrCreate(
             [
-                'prompt_type' => 'extract_book_info',
+                'prompt_type' => 'extract_info',
                 'language' => 'arabic'
             ],
             [
-                'prompt_text' => "أنت متخصص في استخراج معلومات الكتب والمؤلفين. مهمتك استخراج المعلومات التالية من النص:
+                'name' => 'استخراج معلومات الكتاب',
+                'description' => 'توجيه لاستخراج معلومات الكتاب من النص',
+                'prompt_text' => "أنت متخصص في استخراج معلومات الكتب. مهمتك إنشاء معلومات الكتاب من النص التالي:
 
-**المعلومات المطلوبة:**
+المعلومات المطلوبة:
 - عنوان الكتاب
-- اسم المؤلف ويجب ان يكون اسم شخص
-- نبذة عن الكتاب
-- تفاصيل النشر
-- المواضيع الرئيسية
-- الجمهور المستهدف
-- النقاط الرئيسية
-- معلومات عن المؤلف
+- اسم المؤلف
+- ملخص مختصر في حدود 200 كلمة
 
-**تعليمات الاستخراج:**
-- استخرج المعلومات بدقة من النص
-- اكتب المعلومات باللغة العربية
-- نظّم المعلومات بشكل واضح ومنظم
-- إذا لم تجد معلومة معينة، اكتب \"غير محدد\"
-- لا تضيف عبارات مثل \"سأقوم باستخراج\"
+تعليمات الاستخراج:
+- أنشئ جميع معلومات الكتاب باللغة {language} بما في ذلك عنوان الكتاب واسم المؤلف
+- إذا لم تجد معلومة، اكتب \"غير محدد\" أو ما يقابلها باللغة المحددة
+- اكتب المعلومات مباشرة باللغة المطلوبة
+- اكتب ملخصاً مكتملاً ومفيداً دون انقطاع أو عبارات مثل \"بقية الملخص غير متوفرة\" أو \"يمكن استنتاج\"
+- تأكد من أن الملخص ينتهي بجملة مكتملة ومنطقية
+- لا تستخدم علامات الحذف (...) في نهاية الملخص
 
-**النص المراد استخراج المعلومات منه:**
+النص المراد استخراج المعلومات منه:
 {text}
 
-أجب بالتنسيق التالي:
+التنسيق المطلوب:
 العنوان: [عنوان الكتاب]
 المؤلف: [اسم المؤلف]
-الملخص: [نبذة عن الكتاب]
-تفاصيل النشر: [تفاصيل النشر]
-المواضيع الرئيسية: [المواضيع الرئيسية]
-الجمهور المستهدف: [الجمهور المستهدف]
-النقاط الرئيسية: [النقاط الرئيسية]
-معلومات عن المؤلف: [معلومات عن المؤلف]",
-                'description' => 'استخراج معلومات الكتاب باللغة العربية',
+الملخص: [ملخص مختصر ومكتمل]",
                 'is_active' => true,
-                'default_language' => 'arabic'
+                'is_default' => true
             ]
         );
         
         // English prompt
         $englishPrompt = AiPrompt::updateOrCreate(
             [
-                'prompt_type' => 'extract_book_info',
+                'prompt_type' => 'extract_info',
                 'language' => 'english'
             ],
             [
-                'prompt_text' => "You are a specialist in extracting book and author information. Your task is to extract the following information from the text:
+                'name' => 'Extract Book Information',
+                'description' => 'Prompt to extract book information from text',
+                'prompt_text' => "You are a specialist in extracting book information. Your task is to create book information from the following text:
 
-**Required Information:**
+Required Information:
 - Book title
 - Author name
-- Book summary
-- Publication details
-- Main topics
-- Target audience
-- Key points
-- Author information
+- Brief summary within 200 words
 
-**Extraction Instructions:**
-- Extract information accurately from the text
-- Write the information in English
-- Organize information clearly and systematically
-- If you don't find specific information, write \"Not specified\"
-- Don't add phrases like \"I will extract\"
+Extraction Instructions:
+- Create all book information in {language} including book title and author name
+- If you don't find information, write \"Not specified\" or its equivalent in the specified language
+- Write information directly in the required language
+- Write a complete and useful summary without interruption or phrases like \"remaining summary not available\" or \"can be inferred\"
+- Ensure the summary ends with a complete and logical sentence
+- Do not use ellipsis (...) at the end of the summary
 
-**Text to extract information from:**
+Text to extract information from:
 {text}
 
-Answer in the following format:
+Required Format:
 Title: [Book Title]
 Author: [Author Name]
-Summary: [Book Summary]
-Publication Details: [Publication Details]
-Main Topics: [Main Topics]
-Target Audience: [Target Audience]
-Key Points: [Key Points]
-Author Information: [Author Information]",
-                'description' => 'Extract book information in English',
+Summary: [Complete and brief summary]",
                 'is_active' => true,
-                'default_language' => 'english'
+                'is_default' => true
             ]
         );
         
         $this->info('✅ Arabic prompt ID: ' . $arabicPrompt->id);
         $this->info('✅ English prompt ID: ' . $englishPrompt->id);
-        $this->info('Book info extraction prompts added successfully!');
+        $this->info('Book info extraction prompts updated successfully!');
         
         return 0;
     }
