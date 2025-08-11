@@ -102,6 +102,26 @@ class AiProcessorService
                 'book_id' => $bookId
             ]);
             
+            // فحص لتجنب معالجة متكررة لنفس النص
+            $textHash = md5($originalText . serialize($processingOptions) . $targetLanguage);
+            $sessionKey = 'processed_texts_' . $bookId;
+            $processedTexts = session($sessionKey, []);
+            
+            if (in_array($textHash, $processedTexts)) {
+                Log::info('Text already processed, skipping', [
+                    'book_id' => $bookId,
+                    'text_hash' => $textHash,
+                    'processing_options' => $processingOptions
+                ]);
+                
+                return [
+                    'success' => true,
+                    'text' => 'النص تمت معالجته مسبقاً',
+                    'processing_time' => 0,
+                    'skipped' => true
+                ];
+            }
+            
             // Log processing start (minimal logging)
             $this->logProcessingHistory($bookId, $originalFile, $processingOptions, $targetLanguage, 'in_progress');
             
@@ -137,9 +157,14 @@ class AiProcessorService
                 $processingTime = round((microtime(true) - $startTime) * 1000);
                 $this->logProcessingHistory($bookId, $originalFile, $processingOptions, $targetLanguage, 'success', null, $processingTime);
                 
+                // تحديث الجلسة لتتبع النصوص المعالجة
+                $processedTexts[] = $textHash;
+                session([$sessionKey => $processedTexts]);
+                
                 Log::info('=== AI PROCESSING COMPLETED SUCCESSFULLY ===', [
                     'processing_time_ms' => $processingTime,
-                    'book_id' => $bookId
+                    'book_id' => $bookId,
+                    'text_hash' => $textHash
                 ]);
                 
                 return [
@@ -419,33 +444,67 @@ class AiProcessorService
                             'final_title' => $title
                         ]);
                         
-                        // Create BlogArticle record
-                        $blogArticle = \App\Models\BlogArticle::create([
+                        // Check if blog article already exists for this book, file, and language
+                        $existingBlogArticle = \App\Models\BlogArticle::where([
                             'book_id' => $bookId,
                             'original_file' => $originalFile,
-                            'title' => $title,
-                            'article_content' => $cleanedText,
-                            'target_language' => $targetLanguage,
-                            'article_type' => 'blog',
-                            'word_count' => $wordCount,
-                            'seo_keywords' => $seoKeywords,
-                            'status' => 'draft',
-                            'processing_date' => now(),
-                        ]);
+                            'target_language' => $targetLanguage
+                        ])->first();
                         
-                        Log::info('BlogArticle created successfully', [
-                            'blog_article_id' => $blogArticle->id,
-                            'title' => $title,
-                            'word_count' => $wordCount,
-                            'seo_keywords_count' => count(explode(',', $seoKeywords))
-                        ]);
+                        if ($existingBlogArticle) {
+                            Log::info('BlogArticle already exists, updating existing record', [
+                                'existing_id' => $existingBlogArticle->id,
+                                'book_id' => $bookId,
+                                'original_file' => $originalFile
+                            ]);
+                            
+                            // Update existing blog article
+                            $existingBlogArticle->update([
+                                'title' => $title,
+                                'article_content' => $cleanedText,
+                                'word_count' => $wordCount,
+                                'seo_keywords' => $seoKeywords,
+                                'processing_date' => now(),
+                            ]);
+                            
+                            $blogArticle = $existingBlogArticle;
+                            
+                            Log::info('BlogArticle updated successfully', [
+                                'blog_article_id' => $blogArticle->id,
+                                'title' => $title,
+                                'word_count' => $wordCount
+                            ]);
+                        } else {
+                            Log::info('Creating new BlogArticle record');
+                            
+                            // Create new BlogArticle record
+                            $blogArticle = \App\Models\BlogArticle::create([
+                                'book_id' => $bookId,
+                                'original_file' => $originalFile,
+                                'title' => $title,
+                                'article_content' => $cleanedText,
+                                'target_language' => $targetLanguage,
+                                'article_type' => 'blog',
+                                'word_count' => $wordCount,
+                                'seo_keywords' => $seoKeywords,
+                                'status' => 'draft',
+                                'processing_date' => now(),
+                            ]);
+                            
+                            Log::info('BlogArticle created successfully', [
+                                'blog_article_id' => $blogArticle->id,
+                                'title' => $title,
+                                'word_count' => $wordCount,
+                                'seo_keywords_count' => count(explode(',', $seoKeywords))
+                            ]);
+                        }
                         
                         // Also save as text file for backup
                         $this->saveProcessedTextFile($cleanedText, $bookId, $originalFile, 'blog_article', $targetLanguage);
                         Log::info('Blog article text file saved');
                         
                     } catch (\Exception $e) {
-                        Log::error('Error creating BlogArticle: ' . $e->getMessage(), [
+                        Log::error('Error creating/updating BlogArticle: ' . $e->getMessage(), [
                             'book_id' => $bookId,
                             'original_file' => $originalFile,
                             'error' => $e->getMessage()
@@ -739,17 +798,22 @@ class AiProcessorService
                     'language' => $language
                 ]);
                 
-                $bookInfo = BookInfo::create([
-                    'book_id' => $bookId,
-                    'title' => $title,
-                    'author' => $author,
-                    'book_summary' => $summary,
-                    'language' => $language,
-                ]);
+                $bookInfo = BookInfo::updateOrCreate(
+                    [
+                        'book_id' => $bookId,
+                        'language' => $language
+                    ],
+                    [
+                        'title' => $title,
+                        'author' => $author,
+                        'book_summary' => $summary,
+                    ]
+                );
                 
-                Log::info('BookInfo created successfully', [
+                Log::info('BookInfo created/updated successfully', [
                     'book_info_id' => $bookInfo->id,
-                    'book_id' => $bookInfo->book_id
+                    'book_id' => $bookInfo->book_id,
+                    'was_created' => $bookInfo->wasRecentlyCreated
                 ]);
                 
 
@@ -1116,18 +1180,23 @@ class AiProcessorService
                 $title = $this->extractTitleFromFileName($originalFile);
                 
                 // إنشاء سجل في books_info
-                \App\Models\BookInfo::create([
-                    'book_id' => $bookId,
-                    'title' => $title,
-                    'author' => 'غير محدد',
-                    'book_summary' => $processedText, // استخدام النص الكامل بدلاً من قطعه
-                    'language' => $targetLanguage,
-                ]);
+                $bookInfo = \App\Models\BookInfo::updateOrCreate(
+                    [
+                        'book_id' => $bookId,
+                        'language' => $targetLanguage
+                    ],
+                    [
+                        'title' => $title,
+                        'author' => 'غير محدد',
+                        'book_summary' => $processedText, // استخدام النص الكامل بدلاً من قطعه
+                    ]
+                );
                 
-                Log::info('BookInfo created automatically', [
+                Log::info('BookInfo created/updated automatically', [
                     'book_id' => $bookId,
                     'title' => $title,
-                    'language' => $targetLanguage
+                    'language' => $targetLanguage,
+                    'was_created' => $bookInfo->wasRecentlyCreated
                 ]);
             } else {
                 Log::info('BookInfo already exists', [
