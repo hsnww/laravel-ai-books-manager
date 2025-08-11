@@ -123,40 +123,56 @@ class AiProcessorController extends Controller
             'selected_files' => 'required|array|min:1',
             'processing_options' => 'required|array|min:1',
             'output_method' => 'required|in:single,multiple',
-            'target_language' => 'required|string'
+            'target_language' => 'required|string',
+            'offset' => 'sometimes|integer|min:0',
         ]);
         
         $results = [];
         $bookId = $request->book_id;
         $outputMethod = $request->output_method;
+        $offset = (int) $request->input('offset', 0);
+        $startTime = microtime(true);
+        $maxDurationSeconds = (int) ($request->input('max_duration_seconds', 50)); // حد أقصى 50 ثانية افتراضياً
+        $processedCount = 0;
         
         Log::info('Validation passed', [
             'book_id' => $bookId,
             'selected_files_count' => count($request->selected_files),
             'processing_options' => $request->processing_options,
             'output_method' => $outputMethod,
-            'target_language' => $request->target_language
+            'target_language' => $request->target_language,
+            'offset' => $offset,
+            'max_duration_seconds' => $maxDurationSeconds,
         ]);
         
-        // Handle single file output method
+        // Handle single file output method (unchanged)
         if ($outputMethod === 'single') {
             try {
-                // Merge all selected files content
                 $mergedContent = '';
                 $fileNames = [];
                 
-                foreach ($request->selected_files as $filename) {
+                // ابدأ من offset
+                $filesSlice = array_slice($request->selected_files, $offset);
+                foreach ($filesSlice as $filename) {
+                    // تحقق من الزمن قبل كل ملف لتفادي المهلة
+                    if ((microtime(true) - $startTime) >= $maxDurationSeconds) {
+                        break;
+                    }
+                    
                     $fileContent = $this->getFileContent($bookId, $filename);
                     if ($fileContent !== false) {
                         $mergedContent .= "\n\n=== " . $filename . " ===\n\n" . $fileContent;
                         $fileNames[] = $filename;
+                        $processedCount++;
                     }
                 }
                 
                 if (empty($mergedContent)) {
                     return response()->json([
-                        'success' => false,
-                        'error' => 'لا يمكن قراءة أي من الملفات المحددة'
+                        'success' => true,
+                        'results' => [],
+                        'has_more' => ($offset < count($request->selected_files)),
+                        'next_offset' => $offset,
                     ]);
                 }
                 
@@ -166,7 +182,7 @@ class AiProcessorController extends Controller
                     $request->processing_options,
                     $request->target_language,
                     $bookId,
-                    'merged_files_' . implode('_', array_slice($fileNames, 0, 3)) // Use first 3 filenames for merged file name
+                    'merged_files_' . implode('_', array_slice($fileNames, 0, 3))
                 );
                 
                 $results[] = [
@@ -179,7 +195,6 @@ class AiProcessorController extends Controller
                 
             } catch (\Exception $e) {
                 Log::error('AI Processing Error for merged files: ' . $e->getMessage());
-                
                 $results[] = [
                     'filename' => 'ملف مدموج',
                     'success' => false,
@@ -187,16 +202,24 @@ class AiProcessorController extends Controller
                 ];
             }
         } else {
-            // Handle multiple files output method (original behavior)
-            foreach ($request->selected_files as $filename) {
+            // Handle multiple files output method with time slicing
+            $files = array_slice($request->selected_files, $offset);
+            foreach ($files as $filename) {
+                // تحقق من الزمن قبل كل ملف لتفادي مهلة Nginx/Cloudflare
+                if ((microtime(true) - $startTime) >= $maxDurationSeconds) {
+                    Log::info('Time limit reached for this batch', [
+                        'elapsed' => round(microtime(true) - $startTime, 2)
+                    ]);
+                    break;
+                }
+                
                 Log::info('Processing file', [
                     'filename' => $filename,
                     'book_identify' => $bookId
                 ]);
                 
                 try {
-                    // Get file content
-                    $fileContent = $this->getFileContent($bookId, $filename); // $bookId is actually book_identify
+                    $fileContent = $this->getFileContent($bookId, $filename);
                     
                     if ($fileContent === false) {
                         Log::error('File content not found', [
@@ -208,6 +231,7 @@ class AiProcessorController extends Controller
                             'success' => false,
                             'error' => 'لا يمكن قراءة الملف'
                         ];
+                        $processedCount++;
                         continue;
                     }
                     
@@ -216,19 +240,11 @@ class AiProcessorController extends Controller
                         'content_length' => strlen($fileContent)
                     ]);
                     
-                    // Process with AI
-                    Log::info('Calling AI processor service', [
-                        'filename' => $filename,
-                        'book_identify' => $bookId,
-                        'processing_options' => $request->processing_options,
-                        'target_language' => $request->target_language
-                    ]);
-                    
                     $result = $this->aiProcessorService->processText(
                         $fileContent,
                         $request->processing_options,
                         $request->target_language,
-                        $bookId, // This is actually book_identify
+                        $bookId,
                         $filename
                     );
                     
@@ -247,6 +263,7 @@ class AiProcessorController extends Controller
                         'error' => $result['error'] ?? null,
                         'processing_time' => $result['processing_time'] ?? null
                     ];
+                    $processedCount++;
                     
                 } catch (\Exception $e) {
                     Log::error('AI Processing Error for file ' . $filename . ': ' . $e->getMessage());
@@ -256,12 +273,20 @@ class AiProcessorController extends Controller
                         'success' => false,
                         'error' => 'خطأ في معالجة الملف: ' . $e->getMessage()
                     ];
+                    $processedCount++;
                 }
             }
         }
         
+        $totalSelected = count($request->selected_files);
+        $nextOffset = $offset + $processedCount;
+        $hasMore = $nextOffset < $totalSelected;
+        
         Log::info('=== AI PROCESSOR CONTROLLER COMPLETED ===', [
-            'total_files' => count($request->selected_files),
+            'total_files' => $totalSelected,
+            'processed_in_batch' => $processedCount,
+            'next_offset' => $nextOffset,
+            'has_more' => $hasMore,
             'output_method' => $outputMethod,
             'successful_results' => count(array_filter($results, fn($r) => $r['success'])),
             'failed_results' => count(array_filter($results, fn($r) => !$r['success']))
@@ -269,7 +294,9 @@ class AiProcessorController extends Controller
         
         return response()->json([
             'success' => true,
-            'results' => $results
+            'results' => $results,
+            'has_more' => $hasMore,
+            'next_offset' => $nextOffset,
         ]);
     }
     

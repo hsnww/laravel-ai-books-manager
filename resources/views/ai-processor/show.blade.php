@@ -397,38 +397,69 @@
             document.getElementById('processBtn').disabled = true;
             
             // Send request
-            fetch('{{ route("ai-processor.process") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    book_id: '{{ $bookId }}',
-                    selected_files: selectedFiles,
-                    processing_options: processingOptions,
-                    output_method: outputMethod,
-                    target_language: targetLanguage
+            const sendBatch = (offset = 0) => {
+                fetch('{{ route("ai-processor.process") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        book_id: '{{ $bookId }}',
+                        selected_files: selectedFiles,
+                        processing_options: processingOptions,
+                        output_method: outputMethod,
+                        target_language: targetLanguage,
+                        offset: offset,
+                        max_duration_seconds: 45
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('processBtn').disabled = false;
-                
-                if (data.success) {
-                    showResults(data.results);
-                    loadHistory(); // Reload history
-                } else {
-                    alert('خطأ في المعالجة');
-                }
-            })
-            .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('processBtn').disabled = false;
-                console.error('Error:', error);
-                alert('خطأ في الاتصال');
-            });
+                .then(async response => {
+                    const raw = await response.text();
+                    let data;
+                    try {
+                        data = raw ? JSON.parse(raw) : {};
+                    } catch (e) {
+                        throw new Error('Invalid JSON response: ' + raw.slice(0, 200));
+                    }
+
+                    if (!response.ok || data.success === false) {
+                        const message = (data && (data.error || data.message)) || ('HTTP ' + response.status);
+                        throw new Error(message);
+                    }
+
+                    return data;
+                })
+                .then(data => {
+                    // Append results
+                    if (Array.isArray(data.results) && data.results.length) {
+                        const existing = document.getElementById('resultsContent').innerHTML;
+                        // Temporarily render new results using the same presenter
+                        showResults(data.results);
+                        document.getElementById('results').style.display = 'block';
+                    }
+
+                    if (data.has_more) {
+                        // Continue next batch
+                        sendBatch(data.next_offset);
+                    } else {
+                        // Done
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('processBtn').disabled = false;
+                        loadHistory();
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('processBtn').disabled = false;
+                    console.error('Process request failed:', error);
+                    alert('تعذر قراءة استجابة الخادم. قد تكون المعالجة اكتملت جزئياً. راجع السجل وجرّب مرة أخرى.');
+                });
+            };
+
+            // Start first batch
+            sendBatch(0);
         });
         
         // Show results
