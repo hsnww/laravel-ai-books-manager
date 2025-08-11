@@ -37,6 +37,16 @@
         .form-radio:focus {
             ring-color: #9333ea;
         }
+        
+        /* تحسين مظهر checkboxes */
+        .form-checkbox:checked {
+            background-color: #9333ea;
+            border-color: #9333ea;
+        }
+        
+        .form-checkbox:focus {
+            ring-color: #9333ea;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -229,8 +239,8 @@
                 @foreach($processingOptions as $key => $label)
                 <div class="border rounded-lg p-3 hover:bg-gray-50 transition duration-200">
                     <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="processing_options" value="{{ $key }}" 
-                               class="form-radio h-4 w-4 text-purple-600 focus:ring-purple-500">
+                        <input type="checkbox" name="processing_options[]" value="{{ $key }}" 
+                               class="form-checkbox h-4 w-4 text-purple-600 focus:ring-purple-500">
                         <div class="font-medium text-gray-900">{{ $label }}</div>
                     </label>
                 </div>
@@ -239,7 +249,7 @@
             
             <div class="text-sm text-gray-600 mt-2">
                 <i class="fas fa-info-circle"></i>
-                {{ __('Choose only one processing type for best results') }}
+                {{ __('Choose one or more processing types. Book Info and Blog Article will merge all files into one, while Summaries and other types will process each file separately.') }}
             </div>
         </div>
 
@@ -276,7 +286,7 @@
             
             <div class="text-sm text-gray-600 mt-2">
                 <i class="fas fa-info-circle"></i>
-                {{ __('Choose single file for book information extraction, multiple files for detailed processing') }}
+                {{ __('Choose single file for merged processing, multiple files for individual file processing. Multiple processing types always use single file method.') }}
             </div>
         </div>
 
@@ -365,8 +375,8 @@
             const selectedFiles = Array.from(document.querySelectorAll('input[name="selected_files[]"]:checked'))
                 .map(cb => cb.value);
             
-            const processingOption = document.querySelector('input[name="processing_options"]:checked');
-            const processingOptions = processingOption ? [processingOption.value] : [];
+            const processingOptions = Array.from(document.querySelectorAll('input[name="processing_options[]"]:checked'))
+                .map(cb => cb.value);
             
             const outputMethod = document.querySelector('input[name="output_method"]:checked').value;
             
@@ -378,8 +388,19 @@
             }
             
             if (processingOptions.length === 0) {
-                alert('يرجى اختيار نوع معالجة واحد');
+                alert('يرجى اختيار نوع معالجة واحد على الأقل');
                 return;
+            }
+            
+            // إظهار رسالة تأكيد عند اختيار أنواع متعددة
+            if (processingOptions.length > 1) {
+                const confirmMessage = `تم اختيار ${processingOptions.length} أنواع معالجة. سيتم معالجتها بالتتالي:\n\n` +
+                    processingOptions.map(option => `• ${option}`).join('\n') + 
+                    '\n\nملاحظة مهمة:\n• استخراج معلومات الكتاب ومقال المدونة: سيتم دمج جميع الملفات في ملف واحد\n• الملخص والترجمة والتحسين: كل ملف سيتم معالجته منفصلاً\n\nهل تريد المتابعة؟';
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
             }
 
             if (!outputMethod) {
@@ -412,7 +433,7 @@
                         output_method: outputMethod,
                         target_language: targetLanguage,
                         offset: offset,
-                        max_duration_seconds: 45
+                        max_duration_seconds: 60
                     })
                 })
                 .then(async response => {

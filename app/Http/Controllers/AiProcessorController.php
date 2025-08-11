@@ -121,7 +121,7 @@ class AiProcessorController extends Controller
         $request->validate([
             'book_id' => 'required|string',
             'selected_files' => 'required|array|min:1',
-            'processing_options' => 'required|array|min:1',
+            'processing_options' => 'required|array|min:1|max:5', // حد أقصى 5 أنواع معالجة
             'output_method' => 'required|in:single,multiple',
             'target_language' => 'required|string',
             'offset' => 'sometimes|integer|min:0',
@@ -132,8 +132,9 @@ class AiProcessorController extends Controller
         $outputMethod = $request->output_method;
         $offset = (int) $request->input('offset', 0);
         $startTime = microtime(true);
-        $maxDurationSeconds = (int) ($request->input('max_duration_seconds', 50)); // حد أقصى 50 ثانية افتراضياً
+        $maxDurationSeconds = (int) ($request->input('max_duration_seconds', 60)); // حد أقصى 60 ثانية افتراضياً
         $processedCount = 0;
+        $filesProcessedInThisBatch = 0; // Initialize for all cases
         
         Log::info('Validation passed', [
             'book_id' => $bookId,
@@ -145,8 +146,186 @@ class AiProcessorController extends Controller
             'max_duration_seconds' => $maxDurationSeconds,
         ]);
         
-        // Handle single file output method (unchanged)
-        if ($outputMethod === 'single') {
+        // Handle multiple processing types with smart logic
+        if (count($request->processing_options) > 1) {
+            // Multiple processing types - smart handling
+            try {
+                // Separate processing types
+                $singleFileTypes = ['extract_info', 'blog_article']; // Types that need merged content
+                $rawDiff = array_diff($request->processing_options, $singleFileTypes);
+                $multipleFileTypes = array_values($rawDiff); // Types that process each file separately
+                
+                // Debug: Check what's happening with array_diff
+                Log::info('Processing types separation', [
+                    'all_options' => $request->processing_options,
+                    'single_file_types' => $singleFileTypes,
+                    'raw_diff' => $rawDiff,
+                    'raw_diff_type' => gettype($rawDiff),
+                    'raw_diff_count' => count($rawDiff),
+                    'multiple_file_types' => $multipleFileTypes,
+                    'multiple_file_types_type' => gettype($multipleFileTypes),
+                    'multiple_file_types_count' => count($multipleFileTypes),
+                    'has_single_types' => !empty(array_intersect($request->processing_options, $singleFileTypes)),
+                    'has_multiple_types' => !empty($multipleFileTypes)
+                ]);
+                
+                // 1. Process single-file types with merged content ONLY ONCE (when offset = 0)
+                if (array_intersect($request->processing_options, $singleFileTypes) && $offset === 0) {
+                    Log::info('Processing single-file types (ONCE ONLY)', [
+                        'offset' => $offset,
+                        'single_file_types' => array_intersect($request->processing_options, $singleFileTypes)
+                    ]);
+                    
+                    $mergedContent = '';
+                    $fileNames = [];
+                    
+                    // Process ALL files for single-file types (not just offset slice)
+                    foreach ($request->selected_files as $filename) {
+                        if ((microtime(true) - $startTime) >= $maxDurationSeconds) {
+                            break;
+                        }
+                        
+                        $fileContent = $this->getFileContent($bookId, $filename);
+                        if ($fileContent !== false) {
+                            $mergedContent .= "\n\n=== " . $filename . " ===\n\n" . $fileContent;
+                            $fileNames[] = $filename;
+                            $processedCount++;
+                        }
+                    }
+                    
+                    if (!empty($mergedContent)) {
+                        // Process single-file types with merged content
+                        $singleFileOptions = array_intersect($request->processing_options, $singleFileTypes);
+                        $result = $this->aiProcessorService->processText(
+                            $mergedContent,
+                            array_values($singleFileOptions),
+                            $request->target_language,
+                            $bookId,
+                            'merged_files_' . implode('_', array_slice($fileNames, 0, 3))
+                        );
+                        
+                        $results[] = [
+                            'filename' => 'ملف مدموج (' . count($fileNames) . ' ملف) - ' . implode(', ', $singleFileOptions),
+                            'success' => $result['success'],
+                            'text' => $result['text'] ?? null,
+                            'error' => $result['error'] ?? null,
+                            'processing_time' => $result['processing_time'] ?? null
+                        ];
+                    }
+                } else {
+                    Log::info('Skipping single-file types processing', [
+                        'offset' => $offset,
+                        'reason' => 'Already processed in first batch or not applicable'
+                    ]);
+                }
+                
+                // 2. Process multiple-file types individually
+                Log::info('Checking multiple-file types processing', [
+                    'offset' => $offset,
+                    'multiple_file_types' => $multipleFileTypes,
+                    'is_empty' => empty($multipleFileTypes),
+                    'count' => count($multipleFileTypes),
+                    'type' => gettype($multipleFileTypes),
+                    'json_encoded' => json_encode($multipleFileTypes)
+                ]);
+                
+                if (!empty($multipleFileTypes) && is_array($multipleFileTypes) && count($multipleFileTypes) > 0) {
+                    $files = array_slice($request->selected_files, $offset);
+                    $filesProcessedInThisBatch = 0;
+                    
+                    foreach ($files as $filename) {
+                        if ((microtime(true) - $startTime) >= $maxDurationSeconds) {
+                            Log::info('Time limit reached for multiple-file types processing', [
+                                'elapsed' => round(microtime(true) - $startTime, 2),
+                                'processed_files_in_batch' => $filesProcessedInThisBatch,
+                                'total_processed' => $processedCount
+                            ]);
+                            break;
+                        }
+                        
+                        try {
+                            $fileContent = $this->getFileContent($bookId, $filename);
+                            
+                            if ($fileContent === false) {
+                                $results[] = [
+                                    'filename' => $filename,
+                                    'success' => false,
+                                    'error' => 'لا يمكن قراءة الملف'
+                                ];
+                                $processedCount++;
+                                $filesProcessedInThisBatch++;
+                                continue;
+                            }
+                            
+                            Log::info('Processing file with multiple-file types', [
+                                'filename' => $filename,
+                                'types' => $multipleFileTypes
+                            ]);
+                            
+                            // Process each file with multiple-file types
+                            $typesToProcess = array_values($multipleFileTypes);
+                            Log::info('Processing file with types', [
+                                'filename' => $filename,
+                                'types_to_process' => $typesToProcess,
+                                'types_count' => count($typesToProcess),
+                                'types_json' => json_encode($typesToProcess)
+                            ]);
+                            
+                            $result = $this->aiProcessorService->processText(
+                                $fileContent,
+                                $typesToProcess,
+                                $request->target_language,
+                                $bookId,
+                                $filename
+                            );
+                            
+                            $results[] = [
+                                'filename' => $filename . ' - ' . implode(', ', $multipleFileTypes),
+                                'success' => $result['success'],
+                                'text' => $result['text'] ?? null,
+                                'error' => $result['error'] ?? null,
+                                'processing_time' => $result['processing_time'] ?? null
+                            ];
+                            $processedCount++;
+                            $filesProcessedInThisBatch++;
+                            
+                            Log::info('File processed successfully', [
+                                'filename' => $filename,
+                                'success' => $result['success'],
+                                'files_in_batch' => $filesProcessedInThisBatch
+                            ]);
+                            
+                        } catch (\Exception $e) {
+                            Log::error('AI Processing Error for file ' . $filename . ': ' . $e->getMessage());
+                            $results[] = [
+                                'filename' => $filename,
+                                'success' => false,
+                                'error' => 'خطأ في معالجة الملف: ' . $e->getMessage()
+                            ];
+                            $processedCount++;
+                            $filesProcessedInThisBatch++;
+                        }
+                    }
+                }
+                
+                // Log batch completion for multiple-file types
+                Log::info('Multiple-file types batch completed', [
+                    'files_processed_in_batch' => $filesProcessedInThisBatch,
+                    'total_processed' => $processedCount,
+                    'total_files' => count($request->selected_files),
+                    'has_more' => ($processedCount < count($request->selected_files))
+                ]);
+                
+            } catch (\Exception $e) {
+                Log::error('AI Processing Error for multiple types: ' . $e->getMessage());
+                $results[] = [
+                    'filename' => 'معالجة متعددة',
+                    'success' => false,
+                    'error' => 'خطأ في المعالجة المتعددة: ' . $e->getMessage()
+                ];
+            }
+        } elseif ($outputMethod === 'single') {
+            // Single processing type with single file output
             try {
                 $mergedContent = '';
                 $fileNames = [];
@@ -164,6 +343,7 @@ class AiProcessorController extends Controller
                         $mergedContent .= "\n\n=== " . $filename . " ===\n\n" . $fileContent;
                         $fileNames[] = $filename;
                         $processedCount++;
+                        $filesProcessedInThisBatch++;
                     }
                 }
                 
@@ -176,7 +356,7 @@ class AiProcessorController extends Controller
                     ]);
                 }
                 
-                // Process merged content with AI
+                // Process merged content with single AI type
                 $result = $this->aiProcessorService->processText(
                     $mergedContent,
                     $request->processing_options,
@@ -264,6 +444,7 @@ class AiProcessorController extends Controller
                         'processing_time' => $result['processing_time'] ?? null
                     ];
                     $processedCount++;
+                    $filesProcessedInThisBatch++;
                     
                 } catch (\Exception $e) {
                     Log::error('AI Processing Error for file ' . $filename . ': ' . $e->getMessage());
@@ -274,13 +455,32 @@ class AiProcessorController extends Controller
                         'error' => 'خطأ في معالجة الملف: ' . $e->getMessage()
                     ];
                     $processedCount++;
+                    $filesProcessedInThisBatch++;
                 }
             }
         }
         
         $totalSelected = count($request->selected_files);
-        $nextOffset = $offset + $processedCount;
+        
+        // Calculate next offset based on actual files processed
+        if (count($request->processing_options) > 1) {
+            // For multiple processing types, use the actual offset + files processed in this batch
+            $nextOffset = $offset + $filesProcessedInThisBatch;
+        } else {
+            // For single processing type, use the original logic
+            $nextOffset = $offset + $processedCount;
+        }
+        
         $hasMore = $nextOffset < $totalSelected;
+        
+        Log::info('Offset calculation', [
+            'original_offset' => $offset,
+            'processed_count' => $processedCount,
+            'files_processed_in_batch' => $filesProcessedInThisBatch ?? 0,
+            'next_offset' => $nextOffset,
+            'total_selected' => $totalSelected,
+            'has_more' => $hasMore
+        ]);
         
         Log::info('=== AI PROCESSOR CONTROLLER COMPLETED ===', [
             'total_files' => $totalSelected,

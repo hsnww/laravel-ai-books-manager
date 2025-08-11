@@ -18,13 +18,13 @@ class HomeController extends Controller
     }
 
     /**
-     * Show the home page with latest books
+     * Show the home page with oldest books first (for demo/judging purposes)
      */
     public function index()
     {
-        // Get latest 9 books with their info
+        // Get oldest 9 books with their info (for demo/judging purposes)
         $books = Book::with(['bookInfos', 'user'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->take(9)
             ->get();
 
@@ -40,7 +40,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Show all books with pagination
+     * Show all books with pagination (oldest first for demo/judging purposes)
      */
     public function books(Request $request)
     {
@@ -50,9 +50,9 @@ class HomeController extends Controller
             LanguageHelper::setLanguage($locale);
         }
 
-        // Get books with pagination
+        // Get books with pagination (oldest first for demo/judging purposes)
         $books = Book::with(['bookInfos', 'user'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->paginate(12); // 12 books per page (3 cards × 4 rows)
 
         // Get books with preferred info based on browser language using BookInfoService

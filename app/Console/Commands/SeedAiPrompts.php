@@ -167,9 +167,14 @@ class SeedAiPrompts extends Command
 {text}
 
 التنسيق المطلوب:
-العنوان: [عنوان الكتاب]
-المؤلف: [اسم المؤلف]
-الملخص: [ملخص مختصر ومكتمل]",
+اكتب العنوان مباشرة في السطر الأول
+اكتب اسم المؤلف في السطر الثاني
+اكتب الملخص في السطر الثالث وما بعده
+
+مثال:
+عنوان الكتاب هنا
+اسم المؤلف هنا
+ملخص الكتاب هنا...",
                 'is_active' => true,
                 'is_default' => true,
             ],
@@ -199,9 +204,14 @@ Text to extract information from:
 {text}
 
 Required Format:
-Title: [Book Title]
-Author: [Author Name]
-Summary: [Complete and brief summary]",
+Write the title directly on the first line
+Write the author name on the second line
+Write the summary on the third line and onwards
+
+Example:
+Book Title Here
+Author Name Here
+Book summary here...",
                 'is_active' => true,
                 'is_default' => true,
             ],

@@ -52,10 +52,13 @@ class AiProcessorService
             $processingOptions = [$processingType];
             
             // Build prompt
-            $prompt = $this->buildPrompt($processingOptions, $originalText, $targetLanguage);
+            $prompt = $this->buildPrompt($processingOptions, $targetLanguage);
+            
+            // Add the original text to the prompt
+            $finalPrompt = $prompt . "\n\nالنص الأصلي:\n" . $originalText;
             
             // Call Gemini API
-            $response = $this->callGeminiAPI($prompt);
+            $response = $this->callGeminiAPI($finalPrompt);
             
             if ($response['success']) {
                 return $response['text'];
@@ -103,15 +106,18 @@ class AiProcessorService
             $this->logProcessingHistory($bookId, $originalFile, $processingOptions, $targetLanguage, 'in_progress');
             
             // Build prompt
-            $prompt = $this->buildPrompt($processingOptions, $originalText, $targetLanguage);
+            $prompt = $this->buildPrompt($processingOptions, $targetLanguage);
             
             Log::info('Prompt built successfully', [
                 'prompt_length' => strlen($prompt),
                 'processing_options' => $processingOptions
             ]);
             
+            // Add the original text to the prompt
+            $finalPrompt = $prompt . "\n\nالنص الأصلي:\n" . $originalText;
+            
             // Call Gemini API
-            $response = $this->callGeminiAPI($prompt);
+            $response = $this->callGeminiAPI($finalPrompt);
             
             if ($response['success']) {
                 Log::info('Gemini API call successful', [
@@ -172,7 +178,7 @@ class AiProcessorService
     /**
      * Build prompt from database prompts
      */
-    private function buildPrompt($processingOptions, $originalText, $targetLanguage)
+    private function buildPrompt($processingOptions, $targetLanguage)
     {
         $combinedPrompt = '';
         
@@ -201,19 +207,19 @@ class AiProcessorService
             }
         }
         
-        // Add the original text
-        $combinedPrompt .= "النص الأصلي:\n" . $originalText . "\n\n";
-        
-        // Add additional instructions
+        // Add additional instructions for multiple processing types
         $additionalInstructions = "\n\n**تعليمات مهمة إضافية:**\n";
         $additionalInstructions .= "- اكتب النص مباشرة باللغة المطلوبة دون مقدمة أو شرح\n";
         $additionalInstructions .= "- لا تضيف عبارات مثل 'Here is the processed text' أو 'This is the translation'\n";
         $additionalInstructions .= "- لا تشرح ما فعلت، فقط اكتب النص المطلوب\n";
         $additionalInstructions .= "- ابدأ النص مباشرة دون أي مقدمة أو عنوان\n";
         
-        $combinedPrompt .= $additionalInstructions;
+        if (count($processingOptions) > 1) {
+            $additionalInstructions .= "- قم بمعالجة جميع الأنواع المطلوبة في نفس النص\n";
+            $additionalInstructions .= "- اكتب كل نوع معالجة في قسم منفصل\n";
+        }
         
-
+        $combinedPrompt .= $additionalInstructions;
         
         return $combinedPrompt;
     }
@@ -593,9 +599,13 @@ class AiProcessorService
             $extractionPrompt .= "- لا تستخدم علامات الحذف (...) في نهاية الملخص\n\n";
             $extractionPrompt .= "النص المراد استخراج المعلومات منه:\n" . substr($processedText, 0, 2000) . "\n\n";
             $extractionPrompt .= "التنسيق المطلوب:\n";
-            $extractionPrompt .= "العنوان: [عنوان الكتاب]\n";
-            $extractionPrompt .= "المؤلف: [اسم المؤلف]\n";
-            $extractionPrompt .= "الملخص: [ملخص مختصر ومكتمل]\n";
+            $extractionPrompt .= "اكتب العنوان مباشرة في السطر الأول\n";
+            $extractionPrompt .= "اكتب اسم المؤلف في السطر الثاني\n";
+            $extractionPrompt .= "اكتب الملخص في السطر الثالث وما بعده\n\n";
+            $extractionPrompt .= "مثال:\n";
+            $extractionPrompt .= "عنوان الكتاب هنا\n";
+            $extractionPrompt .= "اسم المؤلف هنا\n";
+            $extractionPrompt .= "ملخص الكتاب هنا...\n";
             
             Log::info('Using fallback prompt', [
                 'prompt_length' => strlen($extractionPrompt)
@@ -620,30 +630,53 @@ class AiProcessorService
                 $author = '';
                 $summary = '';
                 
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if (empty($line)) continue;
+                // New format: title on first line, author on second line, summary on third line onwards
+                if (count($lines) >= 3) {
+                    // First line is title
+                    $title = trim($lines[0]);
+                    if (!empty($title)) {
+                        Log::info('Extracted title from first line', ['title' => $title]);
+                    }
                     
-                    // Extract title - support multiple languages and formats
-                    if (strpos($line, 'العنوان:') !== false || strpos($line, 'Title:') !== false) {
-                        $title = trim(str_replace(['العنوان:', 'Title:'], '', $line));
-                        // Remove brackets if present
-                        $title = trim($title, '[]');
-                        Log::info('Extracted title', ['title' => $title]);
+                    // Second line is author
+                    $author = trim($lines[1]);
+                    if (!empty($author)) {
+                        Log::info('Extracted author from second line', ['author' => $author]);
                     }
-                    // Extract author - support multiple languages and formats
-                    elseif (strpos($line, 'المؤلف:') !== false || strpos($line, 'Author:') !== false) {
-                        $author = trim(str_replace(['المؤلف:', 'Author:'], '', $line));
-                        // Remove brackets if present
-                        $author = trim($author, '[]');
-                        Log::info('Extracted author', ['author' => $author]);
+                    
+                    // Third line onwards is summary
+                    $summaryLines = array_slice($lines, 2);
+                    $summary = implode("\n", $summaryLines);
+                    if (!empty($summary)) {
+                        Log::info('Extracted summary from remaining lines', ['summary_length' => strlen($summary)]);
                     }
-                    // Extract summary - support multiple languages and formats
-                    elseif (strpos($line, 'الملخص:') !== false || strpos($line, 'Summary:') !== false) {
-                        $summary = trim(str_replace(['الملخص:', 'Summary:'], '', $line));
-                        // Remove brackets if present
-                        $summary = trim($summary, '[]');
-                        Log::info('Extracted summary', ['summary_length' => strlen($summary)]);
+                } else {
+                    // Fallback to old format detection
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (empty($line)) continue;
+                        
+                        // Extract title - support multiple languages and formats
+                        if (strpos($line, 'العنوان:') !== false || strpos($line, 'Title:') !== false) {
+                            $title = trim(str_replace(['العنوان:', 'Title:'], '', $line));
+                            // Remove brackets if present
+                            $title = trim($title, '[]');
+                            Log::info('Extracted title (fallback)', ['title' => $title]);
+                        }
+                        // Extract author - support multiple languages and formats
+                        elseif (strpos($line, 'المؤلف:') !== false || strpos($line, 'Author:') !== false) {
+                            $author = trim(str_replace(['المؤلف:', 'Author:'], '', $line));
+                            // Remove brackets if present
+                            $author = trim($author, '[]');
+                            Log::info('Extracted author (fallback)', ['author' => $author]);
+                        }
+                        // Extract summary - support multiple languages and formats
+                        elseif (strpos($line, 'الملخص:') !== false || strpos($line, 'Summary:') !== false) {
+                            $summary = trim(str_replace(['الملخص:', 'Summary:'], '', $line));
+                            // Remove brackets if present
+                            $summary = trim($summary, '[]');
+                            Log::info('Extracted summary (fallback)', ['summary_length' => strlen($summary)]);
+                        }
                     }
                 }
                 
@@ -744,42 +777,57 @@ class AiProcessorService
     {
         $lines = explode("\n", $text);
         
-        foreach ($lines as $line) {
+        foreach ($lines as $lineIndex => $line) {
             $line = trim($line);
             if (empty($line)) continue;
             
             // Skip very long lines (likely content, not metadata)
             if (strlen($line) > 200) continue;
             
-            // Look for title patterns
-            if (empty($title) && (
-                strpos($line, 'العنوان') !== false || 
-                strpos($line, 'Title') !== false ||
-                strpos($line, 'اسم الكتاب') !== false ||
-                strpos($line, 'Book Title') !== false
-            )) {
-                $title = trim(str_replace(['العنوان:', 'Title:', 'اسم الكتاب:', 'Book Title:'], '', $line));
+            // Look for title patterns (first line or labeled)
+            if (empty($title)) {
+                if ($lineIndex === 0 && strlen($line) < 200) {
+                    // First line might be title
+                    $title = $line;
+                } elseif (
+                    strpos($line, 'العنوان') !== false || 
+                    strpos($line, 'Title') !== false ||
+                    strpos($line, 'اسم الكتاب') !== false ||
+                    strpos($line, 'Book Title') !== false
+                ) {
+                    $title = trim(str_replace(['العنوان:', 'Title:', 'اسم الكتاب:', 'Book Title:'], '', $line));
+                }
             }
             
-            // Look for author patterns
-            elseif (empty($author) && (
-                strpos($line, 'المؤلف') !== false || 
-                strpos($line, 'Author') !== false ||
-                strpos($line, 'كاتب') !== false ||
-                strpos($line, 'Writer') !== false ||
-                strpos($line, 'تأليف') !== false
-            )) {
-                $author = trim(str_replace(['المؤلف:', 'Author:', 'كاتب:', 'Writer:', 'تأليف'], '', $line));
+            // Look for author patterns (second line or labeled)
+            elseif (empty($author)) {
+                if ($lineIndex === 1 && strlen($line) < 200) {
+                    // Second line might be author
+                    $author = $line;
+                } elseif (
+                    strpos($line, 'المؤلف') !== false || 
+                    strpos($line, 'Author') !== false ||
+                    strpos($line, 'كاتب') !== false ||
+                    strpos($line, 'Writer') !== false ||
+                    strpos($line, 'تأليف') !== false
+                ) {
+                    $author = trim(str_replace(['المؤلف:', 'Author:', 'كاتب:', 'Writer:', 'تأليف'], '', $line));
+                }
             }
             
-            // Look for summary patterns
-            elseif (empty($summary) && (
-                strpos($line, 'الملخص') !== false || 
-                strpos($line, 'Summary') !== false ||
-                strpos($line, 'نبذة') !== false ||
-                strpos($line, 'Abstract') !== false
-            )) {
-                $summary = trim(str_replace(['الملخص:', 'Summary:', 'نبذة:', 'Abstract:'], '', $line));
+            // Look for summary patterns (third line onwards or labeled)
+            elseif (empty($summary)) {
+                if ($lineIndex >= 2) {
+                    // Third line onwards might be summary
+                    $summary .= $line . "\n";
+                } elseif (
+                    strpos($line, 'الملخص') !== false || 
+                    strpos($line, 'Summary') !== false ||
+                    strpos($line, 'نبذة') !== false ||
+                    strpos($line, 'Abstract') !== false
+                ) {
+                    $summary = trim(str_replace(['الملخص:', 'Summary:', 'نبذة:', 'Abstract:'], '', $line));
+                }
             }
         }
         
