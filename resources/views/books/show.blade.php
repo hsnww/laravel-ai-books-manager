@@ -93,37 +93,29 @@
                                 {{ __('Books') }}
                             </a>
                             @auth
-                                <a href="{{ route('filament.admin.pages.dashboard') }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
-                                    <i class="fas fa-tachometer-alt mr-2"></i>
-                                    {{ __('Dashboard') }}
-                                </a>
-                                <a href="{{ route('ai-processor.show', $book->book_identify) }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
-                                    <i class="fas fa-cogs mr-2"></i>
-                                    {{ __('Process') }}
-                                </a>
-                                <a href="{{ route('file-manager.show', $book->book_identify) }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition duration-200">
-                                    <i class="fas fa-folder mr-2"></i>
-                                    {{ __('Files') }}
-                                </a>
+                                @if(auth()->user()->hasRole('super_admin'))
+                                    <a href="{{ route('filament.admin.pages.dashboard') }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
+                                        <i class="fas fa-tachometer-alt mr-2"></i>
+                                        {{ __('Dashboard') }}
+                                    </a>
+                                    <a href="{{ route('ai-processor.show', $book->book_identify) }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
+                                        <i class="fas fa-cogs mr-2"></i>
+                                        {{ __('Process') }}
+                                    </a>
+                                    <a href="{{ route('file-manager.show', $book->book_identify) }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition duration-200">
+                                        <i class="fas fa-folder mr-2"></i>
+                                        {{ __('Files') }}
+                                    </a>
+                                @endif
                             @else
                                 <a href="{{ route('login') }}" 
                                    class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition duration-200">
                                     <i class="fas fa-sign-in-alt mr-2"></i>
                                     {{ __('Login') }}
                                 </a>
-                                <button onclick="showLoginMessage()" 
-                                        class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
-                                    <i class="fas fa-cogs mr-2"></i>
-                                    {{ __('Process') }}
-                                </button>
-                                <button onclick="showLoginMessage()" 
-                                        class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition duration-200">
-                                    <i class="fas fa-folder mr-2"></i>
-                                    {{ __('Files') }}
-                                </button>
                             @endauth
                         </nav>
                     @endif

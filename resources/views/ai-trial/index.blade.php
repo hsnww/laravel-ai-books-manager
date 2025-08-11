@@ -86,6 +86,34 @@
                 <p class="text-gray-600">{{ __('Test AI capabilities with your own text') }}</p>
             </div>
             
+            <!-- Email Verification Notice -->
+            @if(!auth()->user()->hasVerifiedEmail())
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mt-1 mr-3"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold text-yellow-800 mb-2">{{ __('Email Verification Required') }}</h3>
+                            <p class="text-yellow-700 mb-4">
+                                {{ __('To access AI Trial features, you must verify your email address first.') }}
+                            </p>
+                            <div class="flex space-x-4 rtl:space-x-reverse">
+                                <form method="POST" action="{{ route('verification.send') }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition duration-200">
+                                        <i class="fas fa-paper-plane mr-2"></i>
+                                        {{ __('Resend Verification Email') }}
+                                    </button>
+                                </form>
+                                <a href="{{ route('verification.notice') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200">
+                                    <i class="fas fa-envelope mr-2"></i>
+                                    {{ __('Verify Email') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            
             <!-- Info Card -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
                 <div class="flex items-start">
@@ -103,39 +131,38 @@
             </div>
 
             <!-- Processing Form -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-xl font-semibold mb-6">
-                    <i class="fas fa-cogs text-green-600 mr-2"></i>
-                    {{ __('Processing Text') }}
-                </h2>
+            @if(auth()->user()->hasVerifiedEmail())
+                <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                    <h2 class="text-xl font-semibold mb-6">
+                        <i class="fas fa-cogs text-green-600 mr-2"></i>
+                        {{ __('Processing Text') }}
+                    </h2>
 
-                <form id="aiTrialForm" class="space-y-6">
-                    @csrf
-                    
-                    <!-- Text Input -->
-                    <div>
-                        <label for="text" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ __('Text to Process') }}
-                        </label>
-                        <div class="relative">
-                            <textarea 
-                                id="text" 
-                                name="text" 
-                                rows="8" 
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                placeholder="{{ __('Enter text here (50-5000 characters)...') }}"
-                                maxlength="5000"
-                                required
-                            ></textarea>
-                            <div class="absolute bottom-2 left-2 text-xs text-gray-500">
-                                <span id="charCount">0</span> / 5000
+                    <form id="aiTrialForm" class="space-y-6">
+                        @csrf
+                        
+                        <!-- Text Input -->
+                        <div>
+                            <label for="text" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ __('Text to Process') }}
+                            </label>
+                            <div class="relative">
+                                <textarea 
+                                    id="text" 
+                                    name="text" 
+                                    rows="8" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    placeholder="{{ __('Enter text here (50-5000 characters)...') }}"
+                                    maxlength="5000"
+                                    required
+                                ></textarea>
+                                <div class="absolute bottom-2 left-2 text-xs text-gray-500">
+                                    <span id="charCount">0</span> / 5000
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Processing Options -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Processing Type -->
+                        
+                        <!-- Processing Type Selection -->
                         <div>
                             <label for="processing_type" class="block text-sm font-medium text-gray-700 mb-2">
                                 {{ __('Processing Type') }}
@@ -146,19 +173,19 @@
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             >
-                                <option value="">{{ __('Select Processing Type') }}</option>
-                                <option value="extract_info">{{ __('Book Information Extraction') }}</option>
-                                <option value="summarize">{{ __('Text Summarization') }}</option>
-                                <option value="translate">{{ __('Text Translation') }}</option>
-                                <option value="enhance">{{ __('Text Enhancement') }}</option>
-                                <option value="improve_format">{{ __('Bullet Points Summary') }}</option>
+                                <option value="">{{ __('Select processing type') }}</option>
+                                <option value="extract_info">{{ __('Extract Information') }}</option>
+                                <option value="summarize">{{ __('Summarize Text') }}</option>
+                                <option value="translate">{{ __('Translate Text') }}</option>
+                                <option value="enhance">{{ __('Enhance Text') }}</option>
+                                <option value="improve_format">{{ __('Improve Formatting') }}</option>
                             </select>
                         </div>
-
-                        <!-- Language -->
+                        
+                        <!-- Language Selection -->
                         <div>
                             <label for="language" class="block text-sm font-medium text-gray-700 mb-2">
-                                {{ __('Language') }}
+                                {{ __('Target Language') }}
                             </label>
                             <select 
                                 id="language" 
@@ -166,75 +193,61 @@
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             >
-                                <option value="">{{ __('Select Language') }}</option>
-                                <option value="Arabic">العربية</option>
-                                <option value="English">الإنجليزية</option>
-                                <option value="French">الفرنسية</option>
-                                <option value="Spanish">الإسبانية</option>
-                                <option value="German">الألمانية</option>
-                                <option value="Italian">الإيطالية</option>
-                                <option value="Portuguese">البرتغالية</option>
-                                <option value="Russian">الروسية</option>
-                                <option value="Chinese">الصينية</option>
-                                <option value="Japanese">اليابانية</option>
-                                <option value="Korean">الكورية</option>
-                                <option value="Turkish">التركية</option>
-                                <option value="Persian">الفارسية</option>
-                                <option value="Urdu">الأردية</option>
-                                <option value="Hindi">الهندية</option>
-                                <option value="Bengali">البنغالية</option>
+                                <option value="">{{ __('Select language') }}</option>
+                                <option value="arabic">{{ __('Arabic') }}</option>
+                                <option value="english">{{ __('English') }}</option>
                             </select>
                         </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex items-center justify-between">
-                        <div class="flex space-x-3 rtl:space-x-reverse">
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-between">
                             <button 
                                 type="button" 
-                                id="clearText" 
-                                class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition duration-200"
+                                id="clearText"
+                                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
                             >
                                 <i class="fas fa-eraser mr-2"></i>
                                 {{ __('Clear Text') }}
                             </button>
+                            
+                            <button 
+                                type="submit" 
+                                id="processBtn"
+                                class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200 flex items-center"
+                            >
+                                <span id="processBtnText">
+                                    <i class="fas fa-play mr-2"></i>
+                                    {{ __('Start Processing') }}
+                                </span>
+                                <i id="loadingSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                            </button>
                         </div>
-                        
-                        <button 
-                            type="submit" 
-                            id="processBtn" 
-                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition duration-200 flex items-center"
-                        >
-                            <i class="fas fa-magic mr-2"></i>
-                            <span id="processBtnText">{{ __('Start Processing') }}</span>
-                            <div id="loadingSpinner" class="hidden ml-2">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </div>
-                        </button>
-                    </div>
-                </form>
-            </div>
+                    </form>
+                </div>
+            @endif
 
             <!-- Results Section -->
-            <div id="resultsSection" class="bg-white rounded-lg shadow-md p-6 hidden">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">
-                        <i class="fas fa-chart-line text-green-600 mr-2"></i>
-                        {{ __('Result') }}
-                    </h3>
-                    <button 
-                        id="copyResult" 
-                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200"
-                    >
-                        <i class="fas fa-copy mr-2"></i>
-                        {{ __('Copy Result') }}
-                    </button>
+            @if(auth()->user()->hasVerifiedEmail())
+                <div id="resultsSection" class="bg-white rounded-lg shadow-md p-6 hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                            {{ __('Result') }}
+                        </h3>
+                        <button 
+                            id="copyResult" 
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200"
+                        >
+                            <i class="fas fa-copy mr-2"></i>
+                            {{ __('Copy Result') }}
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div id="resultContent" class="text-gray-800 whitespace-pre-wrap"></div>
+                    </div>
                 </div>
-                
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div id="resultContent" class="text-gray-800 whitespace-pre-wrap"></div>
-                </div>
-            </div>
+            @endif
         </div>
     </main>
 
@@ -259,6 +272,7 @@
 
         // AI Trial functionality
         document.addEventListener('DOMContentLoaded', function() {
+            @if(auth()->user()->hasVerifiedEmail())
             const form = document.getElementById('aiTrialForm');
             const textArea = document.getElementById('text');
             const charCount = document.getElementById('charCount');
@@ -338,24 +352,23 @@
 
             // نسخ النتيجة
             copyBtn.addEventListener('click', function() {
-                const text = resultContent.textContent;
-                navigator.clipboard.writeText(text).then(() => {
-                    // تغيير نص الزر مؤقتاً
+                const textToCopy = resultContent.textContent;
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    // تغيير النص مؤقتاً
                     const originalText = copyBtn.innerHTML;
                     copyBtn.innerHTML = '<i class="fas fa-check mr-2"></i>{{ __("Copied!") }}';
-                    copyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    copyBtn.classList.add('bg-green-500');
+                    copyBtn.classList.add('bg-green-700');
                     
-                    setTimeout(() => {
+                    setTimeout(function() {
                         copyBtn.innerHTML = originalText;
-                        copyBtn.classList.remove('bg-green-500');
-                        copyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                        copyBtn.classList.remove('bg-green-700');
                     }, 2000);
-                }).catch(err => {
-                    console.error('{{ __("Failed to copy text") }}: ', err);
-                    alert('{{ __("Failed to copy text") }}');
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    alert('{{ __("Could not copy text to clipboard") }}');
                 });
             });
+            @endif
         });
     </script>
 </body>

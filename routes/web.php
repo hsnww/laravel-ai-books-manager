@@ -44,8 +44,8 @@ Route::prefix('ai-processor')->middleware('auth')->group(function () {
     Route::get('/{bookId}/processed-texts', [AiProcessorController::class, 'getProcessedTexts'])->name('ai-processor.processed-texts');
 });
 
-// AI Trial Routes - Protected by authentication
-Route::prefix('ai-trial')->middleware('auth')->group(function () {
+// AI Trial Routes - Protected by authentication and email verification
+Route::prefix('ai-trial')->middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [AiTrialController::class, 'index'])->name('ai-trial.index');
     Route::post('/process', [AiTrialController::class, 'process'])->name('ai-trial.process');
 });

@@ -58,19 +58,27 @@
     <!-- Main Content -->
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8">
-            <!-- Register Header -->
-            <div class="text-center">
-                <div class="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                    <i class="fas fa-user-plus text-green-600 text-2xl"></i>
+            <!-- Registration Form -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">
+                        {{ __('Create Account') }}
+                    </h2>
+                    <p class="text-gray-600">{{ __('Join AI Books Manager') }}</p>
                 </div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                    {{ __('Create Account') }}
-                </h2>
-                <p class="text-gray-600">{{ __('Join our AI Books Manager community') }}</p>
-            </div>
 
-            <!-- Register Form -->
-            <div class="bg-white rounded-lg shadow-md p-8">
+                <!-- Email Verification Notice -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-600 text-lg mt-1 mr-3"></i>
+                        <div>
+                            <p class="text-blue-700 text-sm">
+                                {{ __('Email verification is required to access all features.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <form method="POST" action="{{ route('register') }}" class="space-y-6">
                     @csrf
 
@@ -79,49 +87,24 @@
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ __('Full Name') }}
                         </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-user text-gray-400"></i>
-                            </div>
-                            <input 
-                                id="name" 
-                                type="text" 
-                                name="name" 
-                                value="{{ old('name') }}" 
-                                required 
-                                autofocus 
-                                autocomplete="name"
-                                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="{{ __('Enter your full name') }}"
-                            />
-                        </div>
+                        <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="{{ __('Enter your full name') }}">
                         @error('name')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <!-- Email Address -->
+                    <!-- Email -->
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ __('Email Address') }}
                         </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-envelope text-gray-400"></i>
-                            </div>
-                            <input 
-                                id="email" 
-                                type="email" 
-                                name="email" 
-                                value="{{ old('email') }}" 
-                                required 
-                                autocomplete="username"
-                                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="{{ __('Enter your email') }}"
-                            />
-                        </div>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="{{ __('Enter your email address') }}">
                         @error('email')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -130,22 +113,11 @@
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ __('Password') }}
                         </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-gray-400"></i>
-                            </div>
-                            <input 
-                                id="password" 
-                                type="password" 
-                                name="password" 
-                                required 
-                                autocomplete="new-password"
-                                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="{{ __('Enter your password') }}"
-                            />
-                        </div>
+                        <input id="password" type="password" name="password" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="{{ __('Enter your password') }}">
                         @error('password')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -154,46 +126,28 @@
                         <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
                             {{ __('Confirm Password') }}
                         </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-gray-400"></i>
-                            </div>
-                            <input 
-                                id="password_confirmation" 
-                                type="password" 
-                                name="password_confirmation" 
-                                required 
-                                autocomplete="new-password"
-                                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="{{ __('Confirm your password') }}"
-                            />
-                        </div>
-                        @error('password_confirmation')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <input id="password_confirmation" type="password" name="password_confirmation" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="{{ __('Confirm your password') }}">
                     </div>
 
                     <!-- Submit Button -->
-                    <div>
-                        <button 
-                            type="submit" 
-                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
-                        >
-                            <i class="fas fa-user-plus mr-2"></i>
-                            {{ __('Create Account') }}
-                        </button>
-                    </div>
-
-                    <!-- Login Link -->
-                    <div class="text-center">
-                        <p class="text-sm text-gray-600">
-                            {{ __('Already have an account?') }}
-                            <a href="{{ route('login') }}" class="font-medium text-blue-600 hover:text-blue-500">
-                                {{ __('Sign in') }}
-                            </a>
-                        </p>
-                    </div>
+                    <button type="submit" 
+                            class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200 flex items-center justify-center">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        {{ __('Create Account') }}
+                    </button>
                 </form>
+
+                <!-- Login Link -->
+                <div class="text-center mt-6">
+                    <p class="text-gray-600">
+                        {{ __('Already have an account?') }}
+                        <a href="{{ route('login') }}" class="text-blue-600 hover:text-blue-700 font-medium">
+                            {{ __('Sign in') }}
+                        </a>
+                    </p>
+                </div>
             </div>
         </div>
     </main>
